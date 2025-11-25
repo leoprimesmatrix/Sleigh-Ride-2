@@ -4,6 +4,7 @@ import GameCanvas from './components/GameCanvas.tsx';
 import VictorySequence from './components/VictorySequence.tsx';
 import { GameState, GameMode } from './types.ts';
 import { Terminal, Cpu, Play, Power, ShieldAlert, Radio } from 'lucide-react';
+import { soundManager } from './audio.ts';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -22,6 +23,9 @@ const App: React.FC = () => {
   }, [gameState]);
 
   const handleStart = () => {
+      // Initialize audio context on user gesture
+      soundManager.init();
+      
       setGameMode(GameMode.STORY);
       setIsLoading(true);
       
@@ -79,20 +83,21 @@ const App: React.FC = () => {
       </div>
 
       {gameState === GameState.MENU && !isLoading && (
-        <div className="z-20 text-center flex flex-col items-center gap-8 relative">
+        <div className="z-20 text-center flex flex-col items-center gap-8 relative w-full px-4">
             
             {/* Title Block */}
-            <div className="relative mb-8">
-                <div className="text-8xl md:text-9xl font-black text-transparent bg-clip-text bg-white tracking-tighter glitch-wrapper" style={{ fontFamily: 'Orbitron' }}>
+            <div className="relative mb-8 w-full max-w-4xl">
+                {/* Adjusted size to 6xl/8xl and Added whitespace-nowrap to prevent ugly wrapping */}
+                <div className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-white tracking-tighter glitch-wrapper whitespace-nowrap" style={{ fontFamily: 'Orbitron' }}>
                     <span className="glitch absolute inset-0" data-text="SLEIGH RIDE 2">SLEIGH RIDE 2</span>
                     <span className="opacity-0">SLEIGH RIDE 2</span>
                 </div>
                 <div className="flex items-center justify-between w-full mt-2 border-t border-b border-cyan-800 py-1">
-                    <span className="text-cyan-500 text-xs tracking-[0.5em] animate-pulse">PROTOCOL:</span>
-                    <h2 className="text-xl md:text-2xl text-cyan-400 tracking-[0.3em] uppercase font-bold text-shadow-glow">
+                    <span className="text-cyan-500 text-[0.6rem] md:text-xs tracking-[0.5em] animate-pulse">PROTOCOL:</span>
+                    <h2 className="text-lg md:text-2xl text-cyan-400 tracking-[0.3em] uppercase font-bold text-shadow-glow">
                         BRAVE NEW WORLD
                     </h2>
-                    <span className="text-cyan-500 text-xs tracking-[0.5em] animate-pulse">ACTIVE</span>
+                    <span className="text-cyan-500 text-[0.6rem] md:text-xs tracking-[0.5em] animate-pulse">ACTIVE</span>
                 </div>
             </div>
 

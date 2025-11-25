@@ -38,6 +38,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   
   // Visuals
   const starsRef = useRef<{x:number, y:number, size:number, opacity:number, blinkSpeed: number}[]>([]); 
+  
   // Background layers now store seed data for procedural generation consistency
   const bgLayersRef = useRef<BackgroundLayer[]>([
     { points: [], color: '#0f172a', speedModifier: 0.05, offset: 0 }, // Distant Mega-Structures
@@ -59,7 +60,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const scoreRef = useRef(0);
   const timeRef = useRef(TOTAL_GAME_TIME_SECONDS);
   const lastFrameTimeRef = useRef(0);
-  const lastLevelIndexRef = useRef(-1);
+  const lastLevelIndexRef = useRef(0); // Set to 0 to avoid -1 issues
   const pressedKeysRef = useRef<Set<string>>(new Set());
 
   const [hudState, setHudState] = useState({
@@ -88,9 +89,27 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     }
   };
 
+  const triggerEMP = () => {
+      if (playerRef.current.energy >= EMP_COST) {
+          playerRef.current.energy -= EMP_COST;
+          soundManager.playEMP();
+          empsRef.current.push({
+              id: Date.now(), x: playerRef.current.x + 40, y: playerRef.current.y + 20,
+              radius: 10, maxRadius: EMP_RADIUS, markedForDeletion: false
+          });
+          shakeRef.current = 15;
+          createParticles(playerRef.current.x + 40, playerRef.current.y + 20, ParticleType.GLITCH, 20, '#0ea5e9');
+      } else {
+          soundManager.playLowEnergy();
+      }
+  };
+
   // --- Controls ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent browser scrolling
+      if(['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
+      
       if (gameState === GameState.MENU) soundManager.init();
       pressedKeysRef.current.add(e.code);
       
@@ -123,59 +142,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     };
   }, [gameState]);
 
-  const triggerEMP = () => {
-      if (playerRef.current.energy >= EMP_COST) {
-          playerRef.current.energy -= EMP_COST;
-          soundManager.playEMP();
-          empsRef.current.push({
-              id: Date.now(), x: playerRef.current.x + 40, y: playerRef.current.y + 20,
-              radius: 10, maxRadius: EMP_RADIUS, markedForDeletion: false
-          });
-          shakeRef.current = 15;
-          createParticles(playerRef.current.x + 40, playerRef.current.y + 20, ParticleType.GLITCH, 20, '#0ea5e9');
-      } else {
-          soundManager.playLowEnergy();
-      }
-  };
-
-  // Init Procedural Backgrounds
+  // Main Game Loop & Init
   useEffect(() => {
-    // Generate pseudo-random heights for buildings
+    if (gameState !== GameState.PLAYING && gameState !== GameState.INTRO) return;
+
+    // --- Background Initialization (Guaranteed to run before render loop) ---
     const genSkyline = (count: number, minH: number, maxH: number) => {
         const pts = [];
         for (let i = 0; i < count; i++) {
-             // Store height and "building type" seed
              pts.push({ height: minH + Math.random() * (maxH - minH), type: Math.floor(Math.random() * 5) });
         }
         return pts;
     };
 
-    // We store building data in 'points' but treating it as a raw array for type compat
-    // Layer 0: Huge background monoliths
-    bgLayersRef.current[0].points = genSkyline(100, 150, 400) as any;
-    // Layer 1: Mid-range textured buildings
-    bgLayersRef.current[1].points = genSkyline(100, 80, 200) as any;
-    // Layer 2: Foreground ruins/pipes
-    bgLayersRef.current[2].points = genSkyline(100, 40, 100) as any;
-    
-    starsRef.current = [];
-    for(let i=0; i<80; i++) {
-        starsRef.current.push({ 
-            x: Math.random()*CANVAS_WIDTH, 
-            y: Math.random()*CANVAS_HEIGHT, 
-            size: Math.random()*1.5 + 0.5, 
-            opacity: Math.random(),
-            blinkSpeed: Math.random() * 0.03 + 0.01
-        });
+    if (bgLayersRef.current[0].points.length === 0) {
+        bgLayersRef.current[0].points = genSkyline(100, 150, 400) as any;
+        bgLayersRef.current[1].points = genSkyline(100, 80, 200) as any;
+        bgLayersRef.current[2].points = genSkyline(100, 40, 100) as any;
+        
+        starsRef.current = [];
+        for(let i=0; i<80; i++) {
+            starsRef.current.push({ 
+                x: Math.random()*CANVAS_WIDTH, 
+                y: Math.random()*CANVAS_HEIGHT, 
+                size: Math.random()*1.5 + 0.5, 
+                opacity: Math.random(),
+                blinkSpeed: Math.random() * 0.03 + 0.01
+            });
+        }
     }
-    
-    soundManager.init(); soundManager.reset();
-    return () => { soundManager.stopEndingMusic(); soundManager.stopBgm(); };
-  }, []);
 
-  // Main Loop
-  useEffect(() => {
-    if (gameState !== GameState.PLAYING && gameState !== GameState.INTRO) return;
+    try {
+        soundManager.init();
+        soundManager.reset();
+    } catch(e) { console.warn("Audio init warning", e); }
 
     let animId: number;
     const ctx = canvasRef.current?.getContext('2d', { alpha: false });
@@ -186,6 +186,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       obstaclesRef.current = []; powerupsRef.current = []; logsRef.current = []; landmarksRef.current = []; empsRef.current = []; particlesRef.current = [];
       distanceRef.current = 0; scoreRef.current = 0; timeRef.current = TOTAL_GAME_TIME_SECONDS;
       triggeredEventsRef.current.clear(); isEndingSequenceRef.current = false; endingTimerRef.current = 0;
+      lastLevelIndexRef.current = 0;
       soundManager.stopBgm();
     };
 
@@ -216,7 +217,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           if (pressedKeysRef.current.has('Space') || pressedKeysRef.current.has('ArrowUp')) {
               player.vy += THRUST_POWER * timeScale; 
               player.isThrusting = true;
-              // High-frequency particle emission for smooth trail
               createParticles(player.x - 10, player.y + 15, ParticleType.THRUST, 1, '#3b82f6'); 
           } else {
               player.isThrusting = false;
@@ -249,7 +249,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           soundManager.playLevelBgm(levelIndex);
           lastLevelIndexRef.current = levelIndex;
       }
-      const level = LEVELS[levelIndex];
+      const level = LEVELS[levelIndex] || LEVELS[0];
 
       if (gameMode === GameMode.STORY && progressRatio >= 0.96 && !isEndingSequenceRef.current) {
           isEndingSequenceRef.current = true;
@@ -272,7 +272,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (!isEndingSequenceRef.current) {
           if (Math.random() < 0.015 * level.spawnRate * timeScale && levelIndex !== 4) {
               const types: Obstacle['type'][] = ['DEBRIS', 'DRONE', 'SERVER_TOWER', 'ENERGY_BARRIER'];
-              // Weighted spawn: Debris is common, Towers rare
               let type = types[0];
               const r = Math.random();
               if (r < 0.3) type = 'DEBRIS';
@@ -280,7 +279,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               else if (r < 0.85) type = 'ENERGY_BARRIER';
               else type = 'SERVER_TOWER';
 
-              // Position logic
               let y = Math.random() * (CANVAS_HEIGHT - 100);
               let w = 40; let h = 40;
               
@@ -361,7 +359,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (player.overclockTimer > 0) player.overclockTimer -= dt;
       player.isShielded = player.shieldTimer > 0 || isEndingSequenceRef.current;
 
-      // Obstacles
       obstaclesRef.current.forEach(obs => {
           obs.x -= currentSpeed * level.obstacleSpeed * timeScale;
           if (obs.x < -100) obs.markedForDeletion = true;
@@ -406,25 +403,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           l.x -= currentSpeed * timeScale;
       });
 
-      // Particle Physics
       particlesRef.current.forEach(p => {
           p.life -= dt;
           p.x += p.vx * timeScale;
           p.y += p.vy * timeScale;
           
           if (p.type === ParticleType.SPARK) {
-              p.vy += 0.5 * timeScale; // Gravity
-              p.vx *= 0.95; // Friction
+              p.vy += 0.5 * timeScale; 
+              p.vx *= 0.95; 
           } else if (p.type === ParticleType.SMOKE) {
-              p.vy -= 0.1 * timeScale; // Smoke Rises
-              p.radius += 0.2 * timeScale; // Smoke Expands
+              p.vy -= 0.1 * timeScale; 
+              p.radius += 0.2 * timeScale; 
               p.alpha -= 0.02 * timeScale;
           } else if (p.type === ParticleType.THRUST) {
-              p.radius *= 0.9; // Shrink
+              p.radius *= 0.9;
           }
       });
 
-      // Cleanup
       obstaclesRef.current = obstaclesRef.current.filter(e => !e.markedForDeletion);
       powerupsRef.current = powerupsRef.current.filter(e => !e.markedForDeletion);
       logsRef.current = logsRef.current.filter(e => !e.markedForDeletion);
@@ -443,7 +438,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     };
 
     const draw = (ctx: CanvasRenderingContext2D, now: number) => {
-        const level = LEVELS[hudState.levelIndex];
+        // Safe access to current level
+        const levelIndex = Math.max(0, lastLevelIndexRef.current);
+        const level = LEVELS[levelIndex] || LEVELS[0];
         
         // 1. Dynamic Sky Gradient
         const grad = ctx.createLinearGradient(0,0,0,CANVAS_HEIGHT);
@@ -469,44 +466,45 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         bgLayersRef.current.forEach((layer, i) => {
             ctx.save();
             ctx.fillStyle = layer.color;
-            const blockWidth = 60 + i * 20; // Width varies by layer
+            const blockWidth = 60 + i * 20; 
             
-            // Draw discrete buildings instead of a continuous line for better detail
+            // Safety Check: Ensure points are initialized before drawing
             const points = layer.points as any[];
+            if (!points || points.length === 0) {
+                 ctx.restore();
+                 return;
+            }
+
             const totalWidth = points.length * blockWidth;
             const scrollPos = (distanceRef.current * layer.speedModifier) % totalWidth;
             
-            // Calculate starting index
             const startIndex = Math.floor(scrollPos / blockWidth);
             const offset = scrollPos % blockWidth;
 
             for (let j = 0; j < Math.ceil(CANVAS_WIDTH / blockWidth) + 1; j++) {
                 const idx = (startIndex + j) % points.length;
-                const b = points[idx]; // Building data
+                const b = points[idx]; 
+                
+                if (!b) continue; // Skip if index invalid
+
                 const x = j * blockWidth - offset;
                 const h = b.height;
                 
-                // Building Body
                 ctx.fillRect(x, CANVAS_HEIGHT - h, blockWidth + 1, h);
 
-                // Windows / Lights Details (Only for closer layers)
                 if (i > 0) {
-                     ctx.fillStyle = i === 1 ? "#334155" : "#475569"; // Window color darker than building
+                     ctx.fillStyle = i === 1 ? "#334155" : "#475569"; 
                      const windowSize = i === 1 ? 4 : 6;
-                     // Deterministic "random" windows based on building seed
                      const seed = (idx * 1337) % 100;
                      if (seed % 3 === 0) {
-                        // Strips
                         ctx.fillRect(x + 10, CANVAS_HEIGHT - h + 10, 5, h - 20);
                      } else if (seed % 3 === 1) {
-                        // Grid
                         for (let wy = CANVAS_HEIGHT - h + 10; wy < CANVAS_HEIGHT; wy += windowSize * 3) {
                             for (let wx = x + 5; wx < x + blockWidth - 5; wx += windowSize * 2) {
                                 if ((wx + wy) % 5 !== 0) ctx.fillRect(wx, wy, windowSize, windowSize);
                             }
                         }
                      }
-                     // Reset fill for next building body
                      ctx.fillStyle = layer.color;
                 }
             }
@@ -521,42 +519,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         const horizonY = CANVAS_HEIGHT - 50;
         
         ctx.beginPath();
-        // Perspective Lines
         for(let x = -CANVAS_WIDTH; x < CANVAS_WIDTH * 2; x += 100) {
             ctx.moveTo(x, horizonY);
-            // Vanishing point approx center
             const xDist = x - CANVAS_WIDTH/2;
             ctx.lineTo(CANVAS_WIDTH/2 + xDist * 4, CANVAS_HEIGHT);
         }
         
-        // Horizontal Lines (Moving)
         const moveZ = (distanceRef.current * 1.5) % 100;
-        for (let z = 0; z < 400; z+=40) {
-             const scale = 1 + z/100;
-             const y = horizonY + z; // Simplified perspective mapping
-             if (y > CANVAS_HEIGHT) break;
-             // We actually just draw horizontal lines that get further apart
-             // Better: Exponential spacing
-        }
-        // Simple scrolling horizontal bars
         for (let i = 0; i < 10; i++) {
              const yPos = horizonY + Math.pow(i, 2.5) + (moveZ * (i/10)); 
              if (yPos > CANVAS_HEIGHT) continue;
              ctx.moveTo(0, yPos); ctx.lineTo(CANVAS_WIDTH, yPos);
         }
-
         ctx.stroke();
         
-        // Ground Fill
         const gradGround = ctx.createLinearGradient(0, horizonY, 0, CANVAS_HEIGHT);
         gradGround.addColorStop(0, "rgba(0,0,0,0.5)");
         gradGround.addColorStop(1, level.colors.grid);
         ctx.fillStyle = gradGround;
         ctx.fillRect(0, horizonY, CANVAS_WIDTH, CANVAS_HEIGHT - horizonY);
-        
         ctx.restore();
 
-        // 5. Screen Effects & Entities
+        // 5. Entities
         ctx.save();
         const dx = (Math.random()-0.5)*shakeRef.current; const dy = (Math.random()-0.5)*shakeRef.current;
         ctx.translate(dx, dy);
@@ -572,8 +556,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         particlesRef.current.forEach(p => drawParticle(ctx, p));
         ctx.restore();
 
-        // Fog Overlay
-        if (hudState.levelIndex < 4) {
+        if (lastLevelIndexRef.current < 4) {
             const gradFog = ctx.createLinearGradient(0, CANVAS_HEIGHT-150, 0, CANVAS_HEIGHT);
             gradFog.addColorStop(0, "rgba(0,0,0,0)");
             gradFog.addColorStop(1, level.colors.fog);
@@ -581,8 +564,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             ctx.fillRect(0, CANVAS_HEIGHT-150, CANVAS_WIDTH, 150);
         }
     };
-
-    // --- Detail Drawing Functions ---
 
     const drawParticle = (ctx: CanvasRenderingContext2D, p: Particle) => {
         ctx.save();
@@ -615,7 +596,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     const drawPlayer = (ctx: CanvasRenderingContext2D, p: Player) => {
         ctx.save(); ctx.translate(p.x + p.width/2, p.y + p.height/2); ctx.rotate(p.angle);
         
-        // Shield Bubble
         if (p.isShielded) {
             ctx.strokeStyle = "#a855f7"; ctx.lineWidth = 2; 
             ctx.shadowColor = "#a855f7"; ctx.shadowBlur = 10;
@@ -624,34 +604,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             ctx.shadowBlur = 0; ctx.globalAlpha = 1;
         }
 
-        // MK-V Sleigh Design
-        // Main Body (Aerodynamic Shell)
         ctx.fillStyle = "#334155"; 
         ctx.beginPath(); 
-        ctx.moveTo(35, 5); 
-        ctx.lineTo(-20, -12); // Tail top
-        ctx.lineTo(-40, 0); // Engine mount
-        ctx.lineTo(-20, 15); // Tail bottom
-        ctx.lineTo(35, 5); // Nose
+        ctx.moveTo(35, 5); ctx.lineTo(-20, -12); ctx.lineTo(-40, 0); ctx.lineTo(-20, 15); ctx.lineTo(35, 5); 
         ctx.fill();
 
-        // Engine Block
         ctx.fillStyle = "#475569";
         ctx.fillRect(-45, -8, 20, 16);
-        // Engine Glow
         ctx.fillStyle = p.isThrusting ? "#3b82f6" : "#1e293b"; 
         ctx.shadowColor = p.isThrusting ? "#3b82f6" : "none"; ctx.shadowBlur = p.isThrusting ? 20 : 0;
         ctx.beginPath(); ctx.ellipse(-48, 0, 4, 10, 0, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Cockpit Canopy
         ctx.fillStyle = "#0ea5e9"; 
         ctx.beginPath(); ctx.ellipse(5, -5, 15, 8, -0.2, 0, Math.PI*2); ctx.fill();
-        // Highlight
         ctx.fillStyle = "rgba(255,255,255,0.4)";
         ctx.beginPath(); ctx.ellipse(8, -7, 8, 3, -0.2, 0, Math.PI*2); ctx.fill();
 
-        // Krampus Scarf (Dynamic)
         const t = Date.now() / 150;
         ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 4; ctx.lineCap = 'round';
         ctx.beginPath(); 
@@ -667,20 +636,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.globalAlpha = o.isDisabled ? 0.3 : 1;
         
         if (o.type === 'DRONE') {
-            // Hover Animation
             const hover = Math.sin(now * 0.005) * 5;
             ctx.translate(0, hover);
             
-            // Central Eye
             ctx.fillStyle = o.isDisabled ? "#22c55e" : "#ef4444";
             ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
             ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
             
-            // Armored Shell
             ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.stroke();
             
-            // Rotating Props
             ctx.rotate(now * 0.01);
             ctx.fillStyle = "#475569";
             ctx.fillRect(-22, -2, 10, 4); ctx.fillRect(12, -2, 10, 4);
@@ -688,11 +653,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         } else if (o.type === 'SERVER_TOWER') {
             const w = o.width; const h = o.height;
             ctx.translate(-w/2, -h/2);
-            // Main structure
             ctx.fillStyle = "#1e293b"; ctx.fillRect(0,0,w,h);
-            // Beveled edges
             ctx.fillStyle = "#334155"; ctx.fillRect(0,0,4,h); ctx.fillRect(w-4,0,4,h);
-            // Blinking Lights
             for(let i=10; i<h-10; i+=15) {
                 const on = Math.sin(now * 0.01 + i) > 0;
                 ctx.fillStyle = on ? (o.isDisabled ? "#22c55e" : "#f59e0b") : "#0f172a";
@@ -701,10 +663,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         } else if (o.type === 'ENERGY_BARRIER') {
             const w = o.width; const h = o.height;
             ctx.translate(-w/2, -h/2);
-            // Emitters
             ctx.fillStyle = "#64748b";
             ctx.fillRect(0, 0, w, 15); ctx.fillRect(0, h-15, w, 15);
-            // Energy Beam
             if (!o.isDisabled) {
                 ctx.strokeStyle = "#0ea5e9"; ctx.lineWidth = 2;
                 ctx.shadowColor = "#0ea5e9"; ctx.shadowBlur = 10;
@@ -717,15 +677,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                 ctx.stroke(); ctx.shadowBlur = 0;
             }
         } else {
-            // Debris (Rotating Scrap)
             ctx.rotate(o.rotation || 0);
             ctx.fillStyle = "#44403c";
-            ctx.beginPath(); 
-            ctx.moveTo(0, -20); ctx.lineTo(15, 0); ctx.lineTo(5, 20); ctx.lineTo(-15, 10); 
-            ctx.fill();
-            // Rust spots
-            ctx.fillStyle = "#78350f"; 
-            ctx.beginPath(); ctx.arc(5, 5, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(15, 0); ctx.lineTo(5, 20); ctx.lineTo(-15, 10); ctx.fill();
+            ctx.fillStyle = "#78350f"; ctx.beginPath(); ctx.arc(5, 5, 3, 0, Math.PI*2); ctx.fill();
         }
         ctx.restore();
     };
@@ -733,36 +688,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     const drawLandmark = (ctx: CanvasRenderingContext2D, lm: Landmark) => {
         ctx.save(); ctx.translate(lm.x, lm.y - 150);
         if (lm.type === 'CHRONOS_RING') {
-            // Big Glowing Ring
             ctx.shadowColor = "#0ea5e9"; ctx.shadowBlur = 30;
             ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 8;
             ctx.beginPath(); ctx.arc(0, 0, 120, 0, Math.PI*2); ctx.stroke();
             ctx.shadowBlur = 0;
-            // Spinning Elements
             const t = Date.now()/1000;
             ctx.strokeStyle = "#0ea5e9"; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.ellipse(0, 0, 100, 30, t, 0, Math.PI*2); ctx.stroke();
             ctx.beginPath(); ctx.ellipse(0, 0, 100, 30, -t, 0, Math.PI*2); ctx.stroke();
         } else if (lm.type === 'HOLO_TREE') {
-            // Digital stylized tree
             ctx.strokeStyle = "#22c55e"; ctx.shadowColor = "#22c55e"; ctx.shadowBlur = 20;
             ctx.lineWidth = 3;
             ctx.beginPath(); 
-            ctx.moveTo(0, 300); ctx.lineTo(0, 250); // Trunk
-            // Branches - Triangles
+            ctx.moveTo(0, 300); ctx.lineTo(0, 250);
             ctx.moveTo(-60, 250); ctx.lineTo(60, 250); ctx.lineTo(0, 150); ctx.lineTo(-60, 250);
             ctx.moveTo(-50, 150); ctx.lineTo(50, 150); ctx.lineTo(0, 70); ctx.lineTo(-50, 150);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
+            ctx.stroke(); ctx.shadowBlur = 0;
         } else {
-            // Factory Silhouette
             ctx.fillStyle = "#0f172a"; 
-            ctx.beginPath(); 
-            ctx.rect(-100, 100, 200, 200);
-            ctx.fill();
-            // Smokestacks
+            ctx.beginPath(); ctx.rect(-100, 100, 200, 200); ctx.fill();
             ctx.fillRect(-80, 0, 30, 100); ctx.fillRect(20, 20, 30, 80);
-            // Caution Stripes
             ctx.fillStyle = "#f59e0b";
             for(let i=0; i<200; i+=40) ctx.fillRect(-100+i, 110, 20, 10);
         }
@@ -777,7 +722,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.save();
         ctx.translate(cx, cy);
         
-        // Outer Glow Orb
         ctx.globalCompositeOperation = 'lighter';
         ctx.shadowColor = color; ctx.shadowBlur = 20;
         ctx.fillStyle = "rgba(255,255,255,0.1)";
@@ -785,23 +729,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Inner Icon
         ctx.fillStyle = color;
         if (p.type === PowerupType.CHARGE) {
-            // Lightning Bolt
             ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(5, -5); ctx.lineTo(-2, 2); ctx.lineTo(4, 2); ctx.lineTo(-3, 10); ctx.lineTo(0, 2); ctx.lineTo(-6, 2); ctx.fill();
         } else if (p.type === PowerupType.REPAIR) {
-            // Cross
             ctx.fillRect(-4, -10, 8, 20); ctx.fillRect(-10, -4, 20, 8);
         } else if (p.type === PowerupType.SHIELD) {
-            // Shield
             ctx.beginPath(); ctx.moveTo(0, 10); ctx.quadraticCurveTo(10, 5, 10, -5); ctx.lineTo(-10, -5); ctx.quadraticCurveTo(-10, 5, 0, 10); ctx.fill();
         } else {
-            // Chip (Overclock)
-            ctx.fillRect(-8, -8, 16, 16);
-            ctx.fillStyle = "#fff"; ctx.fillRect(-4, -4, 8, 8);
+            ctx.fillRect(-8, -8, 16, 16); ctx.fillStyle = "#fff"; ctx.fillRect(-4, -4, 8, 8);
         }
-        
         ctx.restore();
     };
     
@@ -812,8 +749,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.shadowColor = l.isCoreMemory ? "#f59e0b" : "#94a3b8"; ctx.shadowBlur = 10;
         ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0, 30, 20);
         ctx.strokeStyle = l.isCoreMemory ? "#f59e0b" : "#94a3b8"; ctx.lineWidth = 2; ctx.strokeRect(0,0,30,20);
-        
-        // Text Lines
         ctx.fillStyle = ctx.strokeStyle;
         ctx.fillRect(5, 5, 20, 2); ctx.fillRect(5, 10, 15, 2); ctx.fillRect(5, 15, 10, 2);
         
@@ -823,17 +758,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     const checkCollision = (r1: Entity, r2: Entity) => (r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y);
     
     animId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animId);
+    return () => { 
+        cancelAnimationFrame(animId);
+        soundManager.stopBgm();
+    };
   }, [gameState]);
 
   return (
     <div className="relative w-full h-full max-w-[1200px] max-h-[600px] mx-auto border-4 border-slate-800 shadow-2xl overflow-hidden bg-black rounded-lg">
       <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="w-full h-full" />
-      {/* HUD Overlay via React Component */}
       <UIOverlay {...hudState} currentLevelName={LEVELS[hudState.levelIndex].name} currentLevelSub={LEVELS[hudState.levelIndex].subtext} />
-      {/* CRT Vignette */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%)' }}></div>
-      {/* Scanline Overlay */}
       <div className="absolute inset-0 pointer-events-none opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))', backgroundSize: '100% 2px, 3px 100%' }}></div>
     </div>
   );
