@@ -13,11 +13,11 @@ export enum GameMode {
 }
 
 export enum PowerupType {
-  SPEED = 'SPEED',         // Red (Overclock)
-  SNOWBALLS = 'SNOWBALLS', // Cyan (Plasma)
-  BLAST = 'BLAST',         // Gold (EMP)
-  HEALING = 'HEALING',     // Green (Repair)
-  LIFE = 'LIFE'            // Pink (Backup Battery)
+  SPEED = 'SPEED',         // Aether Wind
+  SNOWBALLS = 'SNOWBALLS', // Spirit Orbs
+  BLAST = 'BLAST',         // Echo Blast
+  HEALING = 'HEALING',     // Mending Light
+  LIFE = 'LIFE'            // Resolve
 }
 
 export interface Entity {
@@ -41,12 +41,12 @@ export interface Player extends Entity {
 }
 
 export interface Obstacle extends Entity {
-  type: 'PIPE' | 'DRONE' | 'TRAP' | 'TOWER' | 'DATA_BLOCK';
+  type: 'RUIN_PILLAR' | 'RUSTED_DRONE' | 'FROZEN_BEAM' | 'ANCIENT_TREE';
   rotation?: number; 
 }
 
 export interface Landmark extends Entity {
-  type: 'FACTORY_GATE' | 'SMOG_EMITTER' | 'SERVER_TOWER' | 'CORE_REACTOR' | 'MAIN_HUB';
+  type: 'SILENT_SKYSCRAPER' | 'REINDEER_STATUE' | 'FACTORY_RUINS' | 'CHRONOS_MACHINE';
   name: string;
 }
 
@@ -67,14 +67,11 @@ export interface Projectile extends Entity {
 }
 
 export enum ParticleType {
-  SNOW,      // Now Digital Rain / Ash
-  SPARKLE,   // Electric Sparks
-  DEBRIS,    // Metal parts
-  SMOKE,     // Smog
-  GLOW,      // Neon Glow
-  SHOCKWAVE,
-  FIRE,      // Jet exhaust
-  LIFE
+  ASH,       // Grey snow
+  EMBER,     // Fire from lantern
+  DUST,      // Impact
+  SPIRIT,    // Blue magic
+  GLOW
 }
 
 export interface Particle {
@@ -110,6 +107,6 @@ export interface BackgroundLayer {
 
 export interface DialogueLine {
   id: string;
-  speaker: 'KOMET' | 'VIXEN' | 'KRAMPUS_AI';
+  speaker: 'KRAMPUS' | 'ARCHIVE_SYSTEM' | 'ECHO';
   text: string;
 }

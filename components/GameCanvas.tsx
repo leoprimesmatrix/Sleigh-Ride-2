@@ -3,7 +3,7 @@ import {
   GameState, Player, Obstacle, Powerup, Letter, Projectile, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark
 } from '../types.ts';
 import { 
-  CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, JUMP_STRENGTH, LEVELS, LEVEL_THRESHOLDS, POWERUP_COLORS, TOTAL_GAME_TIME_SECONDS, VICTORY_DISTANCE, BASE_SPEED, WISHES, NARRATIVE_LETTERS, STORY_MOMENTS, LANDMARKS
+  CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, JUMP_STRENGTH, LEVELS, LEVEL_THRESHOLDS, POWERUP_COLORS, TOTAL_GAME_TIME_SECONDS, VICTORY_DISTANCE, BASE_SPEED, ARTIFACTS, NARRATIVE_LETTERS, STORY_MOMENTS, LANDMARKS
 } from '../constants.ts';
 import UIOverlay from './UIOverlay.tsx';
 import { soundManager } from '../audio.ts';
@@ -23,7 +23,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
   // Entities
   const playerRef = useRef<Player>({
-    id: 0, x: 150, y: 300, width: 90, height: 35, markedForDeletion: false,
+    id: 0, x: 150, y: 300, width: 90, height: 40, markedForDeletion: false,
     vy: 0, lives: 3, snowballs: 0, isInvincible: false, invincibleTimer: 0,
     healingTimer: 0, speedTimer: 0, angle: 0
   });
@@ -71,30 +71,30 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
   // Init
   useEffect(() => {
-    // Generate Smooth Cyber Hills
+    // Generate Jagged, Ruined Terrain
     const generateTerrain = (amplitude: number, frequency: number) => {
         const points = [];
         for (let i = 0; i <= CANVAS_WIDTH + 200; i += 20) {
-            points.push(Math.sin(i * frequency) * amplitude);
+            points.push(Math.sin(i * frequency) * amplitude + (Math.random() * 5));
         }
         return points;
     };
 
-    bgLayersRef.current[0].points = generateTerrain(100, 0.005); 
-    bgLayersRef.current[1].points = generateTerrain(50, 0.01);  
-    bgLayersRef.current[2].points = generateTerrain(20, 0.02);  
+    bgLayersRef.current[0].points = generateTerrain(150, 0.005); 
+    bgLayersRef.current[1].points = generateTerrain(80, 0.01);  
+    bgLayersRef.current[2].points = generateTerrain(30, 0.02);  
 
-    // Structures (Cyber Cities)
-    bgStructuresRef.current[1] = bgLayersRef.current[1].points.map(() => Math.random() < 0.1); 
-    bgStructuresRef.current[2] = bgLayersRef.current[2].points.map(() => Math.random() < 0.05);
+    // Structures (Ruins)
+    bgStructuresRef.current[1] = bgLayersRef.current[1].points.map(() => Math.random() < 0.05); 
+    bgStructuresRef.current[2] = bgLayersRef.current[2].points.map(() => Math.random() < 0.03);
 
     starsRef.current = [];
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 40; i++) { 
         starsRef.current.push({
             x: Math.random() * CANVAS_WIDTH,
             y: Math.random() * CANVAS_HEIGHT,
             size: Math.random() * 2,
-            speed: Math.random() * 3 + 0.5
+            speed: Math.random() * 0.5 + 0.1
         });
     }
   }, []);
@@ -116,7 +116,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         if (!isEndingSequenceRef.current) {
             playerRef.current.vy = JUMP_STRENGTH;
             soundManager.playJump();
-            createParticles(playerRef.current.x, playerRef.current.y + 30, ParticleType.FIRE, 8, '#22d3ee'); 
+            createParticles(playerRef.current.x, playerRef.current.y + 35, ParticleType.EMBER, 8, '#fbbf24'); 
         }
       }
 
@@ -133,7 +133,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
        if (gameState === GameState.PLAYING && !isEndingSequenceRef.current) {
           playerRef.current.vy = JUMP_STRENGTH;
           soundManager.playJump();
-          createParticles(playerRef.current.x, playerRef.current.y + 30, ParticleType.FIRE, 8, '#22d3ee');
+          createParticles(playerRef.current.x, playerRef.current.y + 35, ParticleType.EMBER, 8, '#fbbf24');
        }
     };
 
@@ -155,7 +155,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         id: Date.now(),
         x: playerRef.current.x + playerRef.current.width,
         y: playerRef.current.y + playerRef.current.height / 2,
-        width: 25, height: 8, vx: 25, markedForDeletion: false, trail: []
+        width: 15, height: 15, vx: 20, markedForDeletion: false, trail: []
       });
     }
   };
@@ -171,7 +171,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
     const resetGame = () => {
       playerRef.current = {
-        id: 0, x: 150, y: 300, width: 90, height: 35, markedForDeletion: false,
+        id: 0, x: 150, y: 300, width: 90, height: 40, markedForDeletion: false,
         vy: 0, lives: 3, snowballs: 0, isInvincible: false, invincibleTimer: 0,
         healingTimer: 0, speedTimer: 0, angle: 0
       };
@@ -245,20 +245,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (isEndingSequenceRef.current) {
           soundManager.setSleighVolume(0);
           if (joyRideModeRef.current) {
-              // HYPERSPACE JUMP
-              currentSpeed = BASE_SPEED * 8; 
+              // TIME JUMP
               joyRideTimerRef.current -= dt;
-              player.y = 300 + Math.sin(timestamp / 150) * 50; 
-              createParticles(player.x - 20, player.y + 20, ParticleType.FIRE, 10, '#f0abfc'); // Pink trails
+              // Screen fade to white then black handled in draw
               if (joyRideTimerRef.current <= 0) { setGameState(GameState.VICTORY); onWin(); }
           } else {
-              // Pre-Jump
-              player.vy = 0; player.y += (300 - player.y) * 0.05 * timeScale;
-              if (!masterGiftDroppedRef.current && landmarksRef.current.some(l => l.type === 'CORE_REACTOR' && l.x < CANVAS_WIDTH/2)) {
+              // Approaching Machine
+              player.vy = 0; player.y += (350 - player.y) * 0.05 * timeScale;
+              currentSpeed *= 0.95; // Slow to stop
+              
+              if (!masterGiftDroppedRef.current && landmarksRef.current.some(l => l.type === 'CHRONOS_MACHINE' && l.x < CANVAS_WIDTH/2)) {
                   masterGiftDroppedRef.current = true;
-                  createExplosion(player.x, player.y, '#f472b6');
-                  flashTimerRef.current = 1.0; 
-                  setTimeout(() => { joyRideModeRef.current = true; joyRideTimerRef.current = 6.0; }, 500);
+                  createExplosion(player.x + 200, player.y, '#ffffff'); // Activation flash
+                  flashTimerRef.current = 2.0; 
+                  setTimeout(() => { joyRideModeRef.current = true; joyRideTimerRef.current = 4.0; }, 1000);
               }
           }
       } else {
@@ -302,8 +302,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               if (progressRatio >= lm.progress && !triggeredLandmarksRef.current.has(lm.type)) {
                   triggeredLandmarksRef.current.add(lm.type);
                   landmarksRef.current.push({
-                      id: Date.now(), x: CANVAS_WIDTH + 200, y: CANVAS_HEIGHT - 400,
-                      width: 200, height: 400, markedForDeletion: false, type: lm.type, name: lm.name
+                      id: Date.now(), x: CANVAS_WIDTH + 200, y: CANVAS_HEIGHT - 350,
+                      width: 250, height: 350, markedForDeletion: false, type: lm.type, name: lm.name
                   });
               }
           });
@@ -313,7 +313,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                   triggeredLettersRef.current.add(key);
                   lettersRef.current.push({
                       id: Date.now(), x: CANVAS_WIDTH + 100, y: Math.random() * (CANVAS_HEIGHT - 200) + 50,
-                      width: 40, height: 30, floatOffset: 0, markedForDeletion: false, message: nl.message, isGolden: true
+                      width: 30, height: 30, floatOffset: 0, markedForDeletion: false, message: nl.message, isGolden: true
                   });
               }
           });
@@ -323,9 +323,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (!isEndingSequenceRef.current) {
           player.vy += GRAVITY * timeScale;
           player.y += player.vy * timeScale;
-          player.angle += ((Math.min(Math.max(player.vy * 0.05, -0.4), 0.4)) - player.angle) * 0.1 * timeScale;
-          // Plasma Trail
-          if(Math.random() < 0.5) createParticles(player.x, player.y + 20, ParticleType.GLOW, 1, '#22d3ee'); 
+          player.angle += ((Math.min(Math.max(player.vy * 0.05, -0.2), 0.2)) - player.angle) * 0.1 * timeScale;
+          // Lantern Sway particles
+          if(Math.random() < 0.2) createParticles(player.x + 80, player.y + 10, ParticleType.EMBER, 1, '#fbbf24'); 
       }
       
       if (player.y + player.height > CANVAS_HEIGHT - 50) { player.y = CANVAS_HEIGHT - 50 - player.height; player.vy = 0; }
@@ -334,7 +334,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (player.speedTimer > 0) player.speedTimer -= dt;
       if (player.healingTimer > 0) {
         player.healingTimer -= dt;
-        if (Math.random() < 0.2) createParticles(player.x, player.y, ParticleType.GLOW, 1, '#4ade80');
+        if (Math.random() < 0.2) createParticles(player.x, player.y, ParticleType.GLOW, 1, '#86efac');
         if (player.healingTimer <= 0 && player.lives < 3) { player.lives++; soundManager.playHeal(); }
       }
       player.isInvincible = player.invincibleTimer > 0;
@@ -345,7 +345,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           if (layer.offset <= -20) {
               layer.offset += 20;
               layer.points.shift();
-              layer.points.push(Math.sin((distanceRef.current * 0.01) + index) * 20); // Smooth waves
+              layer.points.push(Math.sin((distanceRef.current * 0.01) + index) * 20 + (Math.random()*10)); // Rugged terrain
               
               if (bgStructuresRef.current[index]) {
                   bgStructuresRef.current[index].shift();
@@ -361,7 +361,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
       // Spawning
       if (!isEndingSequenceRef.current && Math.random() < 0.015 * level.spawnRateMultiplier * timeScale) {
-        const obsTypes: Obstacle['type'][] = ['PIPE', 'DRONE', 'TOWER', 'DATA_BLOCK'];
+        const obsTypes: Obstacle['type'][] = ['RUIN_PILLAR', 'RUSTED_DRONE', 'FROZEN_BEAM'];
         let available = obsTypes;
         if (levelIndex === 4) available = []; 
         
@@ -370,9 +370,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             obstaclesRef.current.push({
               id: Date.now() + Math.random(),
               x: CANVAS_WIDTH + 100,
-              y: type === 'DRONE' || type === 'DATA_BLOCK' ? Math.random() * (CANVAS_HEIGHT - 200) : CANVAS_HEIGHT - 120,
-              width: type === 'TOWER' ? 50 : 50,
-              height: type === 'TOWER' ? 150 : 50,
+              y: type === 'RUSTED_DRONE' ? Math.random() * (CANVAS_HEIGHT - 200) : CANVAS_HEIGHT - 100,
+              width: 50,
+              height: type === 'RUIN_PILLAR' ? 120 : 50,
               type: type, markedForDeletion: false, rotation: 0
             });
         }
@@ -387,7 +387,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
 
       if (!isEndingSequenceRef.current && Math.random() < ((gameMode === GameMode.STORY && levelIndex === 4) ? 0.02 : 0.003) * timeScale) {
-          const msg = WISHES[Math.floor(Math.random() * WISHES.length)];
+          const msg = ARTIFACTS[Math.floor(Math.random() * ARTIFACTS.length)];
           const isGolden = (gameMode === GameMode.STORY && levelIndex === 4);
           lettersRef.current.push({
               id: Date.now(), x: CANVAS_WIDTH + 100, y: Math.random() * (CANVAS_HEIGHT - 250) + 50,
@@ -398,14 +398,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       // Collisions
       obstaclesRef.current.forEach(obs => {
         obs.x -= currentSpeed * level.obstacleSpeedMultiplier * timeScale;
-        if (obs.type === 'DRONE') { obs.y += Math.sin(timestamp / 300 + obs.id) * 3; }
+        if (obs.type === 'RUSTED_DRONE') { obs.y += Math.sin(timestamp / 500 + obs.id) * 2; }
         if (obs.x + obs.width < -100) obs.markedForDeletion = true;
         
         if (!cinematicMode && !player.isInvincible && checkCollision(player, obs)) {
           if (gameMode === GameMode.STORY && levelIndex === 4) {} 
           else {
               player.lives--; soundManager.playCrash(); player.invincibleTimer = 2.0; shakeRef.current = 15;
-              createExplosion(player.x, player.y, '#f43f5e');
+              createExplosion(player.x, player.y, '#9ca3af'); // Grey/Dust explosion
           }
         }
       });
@@ -414,7 +414,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         pup.x -= currentSpeed * timeScale;
         if (checkCollision(player, pup)) {
           pup.markedForDeletion = true; applyPowerup(pup.type); soundManager.playPowerup(pup.type);
-          createParticles(pup.x, pup.y, ParticleType.SPARKLE, 20, POWERUP_COLORS[pup.type]);
+          createParticles(pup.x, pup.y, ParticleType.GLOW, 20, POWERUP_COLORS[pup.type]);
           collectedPowerupsRef.current.push({ id: Date.now(), type: pup.type });
         }
       });
@@ -439,14 +439,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         obstaclesRef.current.forEach(obs => {
             if (!obs.markedForDeletion && checkCollision(p, obs)) {
                 obs.markedForDeletion = true; p.markedForDeletion = true;
-                soundManager.playCrash(); createExplosion(obs.x, obs.y, '#facc15'); scoreRef.current += 100;
+                soundManager.playCrash(); createExplosion(obs.x, obs.y, '#93c5fd'); scoreRef.current += 100;
             }
         });
       });
 
       particlesRef.current.forEach(p => {
         p.x += p.vx * timeScale; p.y += p.vy * timeScale; p.life -= dt; p.alpha = p.life / p.maxLife;
-        if (p.type === ParticleType.SNOW) { p.y += 2 * timeScale; } 
+        if (p.type === ParticleType.ASH) { p.y += 1 * timeScale; p.x += Math.sin(timestamp/500)*0.5; } 
       });
       particlesRef.current = particlesRef.current.filter(p => p.life > 0);
 
@@ -465,65 +465,42 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
     const draw = (ctx: CanvasRenderingContext2D, timestamp: number) => {
       const level = LEVELS[hudState.levelIndex];
-      // Background Gradient
+      // Background Gradient - Desolate
       const grad = ctx.createLinearGradient(0,0,0,CANVAS_HEIGHT);
       grad.addColorStop(0, level.backgroundGradient[0]); 
-      grad.addColorStop(1, level.backgroundGradient[1]);
+      grad.addColorStop(1, level.backgroundGradient[1]); 
       ctx.fillStyle = grad;
       ctx.fillRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // --- TRON Grid Floor ---
-      ctx.save();
-      ctx.strokeStyle = "rgba(34, 211, 238, 0.3)"; // Cyan Glow
-      ctx.lineWidth = 2;
-      ctx.shadowColor = "#22d3ee";
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      // Horizontal moving lines
-      const gridOffset = (distanceRef.current % 80);
-      for(let y=CANVAS_HEIGHT; y>CANVAS_HEIGHT-150; y-=20) {
-          ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y);
-      }
-      // Vertical Perspective lines
-      for(let x=-200; x<CANVAS_WIDTH+200; x+=100) {
-          const perspectiveX = x - (distanceRef.current % 100);
-          ctx.moveTo(perspectiveX, CANVAS_HEIGHT);
-          ctx.lineTo(CANVAS_WIDTH/2 + (perspectiveX - CANVAS_WIDTH/2)*0.1, CANVAS_HEIGHT/2); // Vanishing point
-      }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-
-      // Stars/Data Bits
-      ctx.fillStyle = "#fff";
+      // Stars/Snow - Ash
+      ctx.fillStyle = "#cbd5e1";
       starsRef.current.forEach(s => {
-          ctx.globalAlpha = Math.random() * 0.5 + 0.3;
-          if (Math.random() > 0.5) ctx.fillRect(s.x, s.y, s.size, s.size); // Square bits
-          else { ctx.beginPath(); ctx.arc(s.x, s.y, s.size/2, 0, Math.PI*2); ctx.fill(); }
+          ctx.globalAlpha = Math.random() * 0.2 + 0.1;
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.size/2, 0, Math.PI*2); ctx.fill();
       });
       ctx.globalAlpha = 1;
 
-      // Parallax Hills (Glowing)
-      drawParallaxLayer(ctx, bgLayersRef.current[0], CANVAS_HEIGHT - 120, "#1e3a8a", timestamp); // Dark Blue
-      drawParallaxLayer(ctx, bgLayersRef.current[1], CANVAS_HEIGHT - 80, "#2563eb", timestamp, bgStructuresRef.current[1]); // Blue
+      // Parallax Hills - Silhouette Ruins
+      drawParallaxLayer(ctx, bgLayersRef.current[0], CANVAS_HEIGHT - 120, "#020617", timestamp); 
+      drawParallaxLayer(ctx, bgLayersRef.current[1], CANVAS_HEIGHT - 80, "#0f172a", timestamp, bgStructuresRef.current[1]); 
       
       ctx.save();
       const dx = (Math.random() - 0.5) * shakeRef.current; 
       const dy = (Math.random() - 0.5) * shakeRef.current;
       ctx.translate(dx, dy);
 
-      drawParallaxLayer(ctx, bgLayersRef.current[2], CANVAS_HEIGHT - 40, "#3b82f6", timestamp, bgStructuresRef.current[2]); // Lighter Blue
+      drawParallaxLayer(ctx, bgLayersRef.current[2], CANVAS_HEIGHT - 40, "#1e293b", timestamp, bgStructuresRef.current[2]); 
 
       landmarksRef.current.forEach(lm => drawLandmark(ctx, lm));
       powerupsRef.current.forEach(p => drawPowerup(ctx, p));
       lettersRef.current.forEach(l => drawLetter(ctx, l));
       obstaclesRef.current.forEach(o => drawObstacle(ctx, o));
       
-      // Projectiles (Neon Lasers)
+      // Projectiles (Spirit Orbs)
       projectilesRef.current.forEach(p => {
-          ctx.strokeStyle = "#facc15"; ctx.lineWidth = 4; 
-          ctx.shadowColor = "#facc15"; ctx.shadowBlur = 15;
-          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - 30, p.y); ctx.stroke();
+          ctx.fillStyle = "#93c5fd"; 
+          ctx.shadowColor = "#60a5fa"; ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
           ctx.shadowBlur = 0;
       });
 
@@ -531,7 +508,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
       particlesRef.current.forEach(p => {
           ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
-          if (p.type === ParticleType.FIRE || p.type === ParticleType.GLOW) { 
+          if (p.type === ParticleType.EMBER || p.type === ParticleType.GLOW) { 
               ctx.globalCompositeOperation = 'lighter'; 
               ctx.shadowColor = p.color; ctx.shadowBlur = 10;
           }
@@ -556,15 +533,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const createParticles = (x: number, y: number, type: ParticleType, count: number, color: string) => {
       for(let i=0; i<count; i++) {
           particlesRef.current.push({
-              id: Math.random(), type, x, y, radius: Math.random()*4+2,
+              id: Math.random(), type, x, y, radius: Math.random()*4+1,
               vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, alpha: 1, color, life: 1, maxLife: 1, growth: 0
           });
       }
   };
 
   const createExplosion = (x: number, y: number, color: string) => {
-      createParticles(x, y, ParticleType.FIRE, 20, color);
-      createParticles(x, y, ParticleType.DEBRIS, 10, '#ffffff');
+      createParticles(x, y, ParticleType.EMBER, 10, color);
+      createParticles(x, y, ParticleType.DUST, 15, '#475569');
   };
 
   const applyPowerup = (type: PowerupType) => {
@@ -579,7 +556,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const drawParallaxLayer = (ctx: CanvasRenderingContext2D, layer: BackgroundLayer, baseY: number, color: string, timestamp: number, structs?: boolean[]) => {
       ctx.fillStyle = color;
       ctx.beginPath(); ctx.moveTo(0, CANVAS_HEIGHT);
-      // Smooth terrain with glow
       for (let i = 0; i < layer.points.length - 1; i++) {
           const x = (i * 20) + layer.offset; const y = baseY + layer.points[i];
           const nextX = ((i + 1) * 20) + layer.offset; const nextY = baseY + layer.points[i+1];
@@ -587,17 +563,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
       ctx.lineTo(CANVAS_WIDTH + 200, CANVAS_HEIGHT); ctx.fill();
       
-      // Cyber Trees / Towers
+      // Ruins / Pillars
       if (structs) {
-          ctx.shadowColor = "#4f46e5"; ctx.shadowBlur = 10;
+          ctx.shadowColor = "#000"; ctx.shadowBlur = 5;
           for(let i=0; i<layer.points.length; i++) {
               if (structs[i]) {
                   const x = (i * 20) + layer.offset; const y = baseY + layer.points[i];
-                  // Glowing vertical line (Tree trunk)
-                  ctx.fillStyle = "#818cf8"; ctx.fillRect(x, y - 40, 4, 40);
-                  // Top light
-                  ctx.fillStyle = i % 2 === 0 ? "#22d3ee" : "#f472b6"; 
-                  ctx.fillRect(x-2, y-45, 8, 8);
+                  // Broken Pillar
+                  ctx.fillStyle = color; // Same as ground but taller
+                  ctx.fillRect(x, y - 60, 10, 60);
+                  // Crumbling top
+                  ctx.beginPath(); ctx.moveTo(x, y-60); ctx.lineTo(x+10, y-60); ctx.lineTo(x+5, y-70); ctx.fill();
               }
           }
           ctx.shadowBlur = 0;
@@ -608,127 +584,114 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       ctx.save(); ctx.translate(p.x + p.width/2, p.y + p.height/2); ctx.rotate(p.angle);
       if (p.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) { ctx.restore(); return; }
       
-      // THE MK-V "Light-Skipper" Prototype
-      // A sleek, single-pilot hover bike design
-      ctx.shadowColor = "#22d3ee"; ctx.shadowBlur = 20;
+      // KRAMPUS'S SLEIGH (Scavenged)
       
-      // Main Chassis (White/Silver)
-      ctx.fillStyle = "#e2e8f0"; 
-      ctx.beginPath();
-      ctx.ellipse(0, 5, 45, 10, 0, 0, Math.PI * 2);
-      ctx.fill();
+      // Runners (Rusted Metal)
+      ctx.strokeStyle = "#78350f"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-30, 20); ctx.lineTo(30, 20); ctx.quadraticCurveTo(40, 15, 35, 10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-20, 20); ctx.lineTo(-20, 10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(20, 20); ctx.lineTo(20, 10); ctx.stroke();
 
-      // Engine Core (Cyan)
-      ctx.fillStyle = "#22d3ee";
-      ctx.beginPath();
-      ctx.arc(-10, 5, 8, 0, Math.PI*2);
-      ctx.fill();
-
-      // Rear Thrusters
-      ctx.fillStyle = "#f472b6"; // Pink Exhaust
-      ctx.fillRect(-50, 0, 10, 10);
+      // Body (Old Wood)
+      ctx.fillStyle = "#451a03"; 
+      ctx.fillRect(-35, 0, 70, 15);
       
-      // Pilot: Komet
-      // Head/Helmet
-      ctx.fillStyle = "#facc15"; // Yellow Helmet (Komet's signature)
-      ctx.beginPath(); ctx.arc(10, -5, 10, 0, Math.PI*2); ctx.fill();
-      // Visor
-      ctx.fillStyle = "#000";
-      ctx.fillRect(10, -8, 10, 4);
+      // Krampus Figure
+      ctx.fillStyle = "#1e293b"; // Dark Cloak
+      ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.lineTo(0, -25); ctx.fill(); // Body
+      
+      // Head & Horns
+      ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.arc(0, -25, 6, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-4, -30); ctx.lineTo(-8, -40); ctx.stroke(); // Left Horn
+      ctx.beginPath(); ctx.moveTo(4, -30); ctx.lineTo(8, -40); ctx.stroke(); // Right Horn
 
-      // Scarf (Trailing)
-      ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(5, -2);
-      ctx.quadraticCurveTo(-20, -10 + Math.sin(Date.now()/100)*5, -40, -5);
-      ctx.stroke();
+      // The Lantern (Hanging from back)
+      ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-35, 0); ctx.lineTo(-40, 5); ctx.stroke();
+      
+      // Lantern Glow
+      ctx.shadowColor = "#fbbf24"; ctx.shadowBlur = 20;
+      ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.arc(-40, 10, 4, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
 
       ctx.restore();
   };
 
   const drawObstacle = (ctx: CanvasRenderingContext2D, o: Obstacle) => {
       ctx.save(); ctx.translate(o.x, o.y);
-      // Neon/Glass Aesthetics
-      ctx.lineWidth = 2;
       
-      if (o.type === 'PIPE') {
-          // "Data Pillar"
-          ctx.fillStyle = "rgba(16, 185, 129, 0.2)"; ctx.strokeStyle = "#10b981";
-          ctx.fillRect(0,0,o.width, o.height); ctx.strokeRect(0,0,o.width,o.height);
-          // Moving data lines inside
-          ctx.fillStyle = "#10b981"; ctx.fillRect(5, (Date.now()/5)%o.height, o.width-10, 5);
-
-      } else if (o.type === 'DRONE') {
-          // "Seeker Bot"
-          ctx.shadowColor = "#f43f5e"; ctx.shadowBlur = 10;
-          ctx.fillStyle = "#1e293b"; ctx.beginPath(); ctx.arc(o.width/2, o.height/2, 20, 0, Math.PI*2); ctx.fill();
-          ctx.fillStyle = "#f43f5e"; ctx.beginPath(); ctx.arc(o.width/2, o.height/2, 8, 0, Math.PI*2); ctx.fill();
-          // Wings
-          ctx.strokeStyle = "#cbd5e1"; ctx.beginPath(); ctx.moveTo(0, o.height/2); ctx.lineTo(o.width, o.height/2); ctx.stroke();
-      
-      } else if (o.type === 'TOWER') {
-          // "Firewall Turret"
-          ctx.fillStyle = "#450a0a"; ctx.fillRect(0,0,o.width,o.height);
-          ctx.fillStyle = "#ef4444"; ctx.fillRect(10, 10, 5, o.height-20);
-          ctx.shadowColor = "#ef4444"; ctx.shadowBlur = 10;
-          ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(o.width/2, 20, 5, 0, Math.PI*2); ctx.fill();
-
-      } else { 
-          // "Glitch Block"
-          ctx.fillStyle = "rgba(239, 68, 68, 0.3)"; ctx.strokeStyle = "#ef4444";
-          ctx.fillRect(0,0,o.width, o.height); ctx.strokeRect(0,0,o.width,o.height);
-          ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(o.width, o.height); ctx.stroke();
+      if (o.type === 'RUIN_PILLAR') {
+          ctx.fillStyle = "#334155"; 
+          ctx.fillRect(0,0,o.width, o.height);
+          // Cracks
+          ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(10, 10); ctx.lineTo(20, 40); ctx.lineTo(10, 60); ctx.stroke();
+      } else if (o.type === 'RUSTED_DRONE') {
+          ctx.fillStyle = "#78350f"; 
+          ctx.beginPath(); ctx.arc(o.width/2, o.height/2, 15, 0, Math.PI*2); ctx.fill();
+          // Red Eye (Fading)
+          ctx.fillStyle = "#dc2626"; ctx.shadowColor = "#dc2626"; ctx.shadowBlur = 5;
+          ctx.beginPath(); ctx.arc(o.width/2, o.height/2, 4, 0, Math.PI*2); ctx.fill();
+          ctx.shadowBlur = 0;
+      } else {
+          // Frozen Beam
+          ctx.fillStyle = "#64748b"; 
+          ctx.fillRect(0,0,o.width, o.height);
+          ctx.fillStyle = "#94a3b8"; ctx.fillRect(5, 0, 5, o.height); // Ice streak
       }
       ctx.restore();
   };
 
   const drawPowerup = (ctx: CanvasRenderingContext2D, p: Powerup) => {
       ctx.save(); ctx.translate(p.x, p.y);
-      // Glowing Cube
       const color = POWERUP_COLORS[p.type];
-      ctx.shadowColor = color; ctx.shadowBlur = 20;
-      ctx.strokeStyle = color; ctx.lineWidth = 3;
+      ctx.shadowColor = color; ctx.shadowBlur = 10;
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0,p.width,p.height); 
       ctx.strokeRect(0,0,p.width,p.height);
       
-      // Inner fill
-      ctx.fillStyle = color; ctx.globalAlpha = 0.3; ctx.fillRect(0,0,p.width,p.height); ctx.globalAlpha = 1;
-
       ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = "20px 'Segoe UI Emoji'";
-      const emoji = p.type === 'SPEED' ? '⚡' : (p.type === 'SNOWBALLS' ? '❄️' : (p.type === 'HEALING' ? '❤️' : (p.type === 'BLAST' ? '💥' : '➕')));
-      ctx.fillText(emoji, p.width/2, p.height/2 + 2);
+      ctx.font = "16px monospace";
+      const icon = p.type === 'SPEED' ? '⚡' : (p.type === 'SNOWBALLS' ? '✦' : (p.type === 'HEALING' ? '+' : '♥'));
+      ctx.fillText(icon, p.width/2, p.height/2);
       ctx.restore();
   };
 
   const drawLetter = (ctx: CanvasRenderingContext2D, l: Letter) => {
       ctx.save(); ctx.translate(l.x, l.y);
-      // Data Packet
-      ctx.fillStyle = l.isGolden ? "#facc15" : "#22d3ee";
-      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 15;
-      ctx.beginPath(); ctx.moveTo(0,10); ctx.lineTo(15,0); ctx.lineTo(30,10); ctx.lineTo(15,20); ctx.fill();
-      // Icon
-      ctx.fillStyle = "#000"; ctx.font = "12px monospace"; ctx.fillText("✉", 12, 14);
+      ctx.fillStyle = "#fde047";
+      ctx.shadowColor = "#fde047"; ctx.shadowBlur = 10;
+      // Scroll shape
+      ctx.fillRect(0, 5, 30, 15);
+      ctx.fillStyle = "#451a03"; ctx.fillRect(2, 8, 26, 2); ctx.fillRect(2, 12, 20, 2);
       ctx.restore();
   };
 
   const drawLandmark = (ctx: CanvasRenderingContext2D, lm: Landmark) => {
       ctx.save(); ctx.translate(lm.x, lm.y);
       ctx.fillStyle = "#0f172a";
-      ctx.shadowColor = "#3b82f6"; ctx.shadowBlur = 20;
       
-      // Massive Monolith
-      ctx.fillRect(0, 0, lm.width, lm.height);
-      
-      // Glowing details
-      ctx.fillStyle = lm.type === 'CORE_REACTOR' ? "#ef4444" : "#3b82f6";
-      ctx.fillRect(20, 50, lm.width-40, 10);
-      ctx.fillRect(20, 100, lm.width-40, 10);
-      
+      if (lm.type === 'CHRONOS_MACHINE') {
+          // Big circular gate
+          ctx.beginPath(); ctx.arc(lm.width/2, lm.height/2, 100, 0, Math.PI*2); ctx.fill();
+          ctx.strokeStyle = "#fff"; ctx.lineWidth = 5; ctx.stroke();
+          // Glow center
+          ctx.fillStyle = "#fff"; ctx.shadowColor = "#fff"; ctx.shadowBlur = 50;
+          ctx.beginPath(); ctx.arc(lm.width/2, lm.height/2, 20, 0, Math.PI*2); ctx.fill();
+      } else if (lm.type === 'REINDEER_STATUE') {
+          // Blocky statue
+          ctx.fillRect(0, lm.height-100, 100, 100); // Base
+          ctx.beginPath(); ctx.moveTo(20, lm.height-100); ctx.lineTo(50, lm.height-200); ctx.lineTo(80, lm.height-100); ctx.fill(); // Body
+      } else {
+          // Ruin
+          ctx.fillRect(0,0, lm.width, lm.height);
+      }
       ctx.restore();
   };
 
   return (
-    <div className="relative w-full h-full max-w-[1200px] max-h-[600px] mx-auto border-4 border-slate-800 shadow-[0_0_50px_rgba(34,211,238,0.2)] rounded-xl overflow-hidden bg-black">
+    <div className="relative w-full h-full max-w-[1200px] max-h-[600px] mx-auto border-4 border-slate-900 shadow-2xl rounded-sm overflow-hidden bg-black">
       <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="w-full h-full object-cover" />
       {gameState !== GameState.INTRO && !cinematicMode && !isEndingSequenceRef.current && (
         <UIOverlay 
@@ -737,7 +700,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           score={hudState.score} collectedPowerups={hudState.collectedPowerups} activeDialogue={hudState.activeDialogue} activeWish={hudState.activeWish}
         />
       )}
-      {/* Mobile Controls */}
       <div className="absolute inset-0 flex md:hidden z-40 pointer-events-auto">
         <div className="w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {playerRef.current.vy = JUMP_STRENGTH; soundManager.playJump();} }} />
         <div className="w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {shootProjectile();} }} />

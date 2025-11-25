@@ -1,6 +1,5 @@
-
-import React, { useEffect, useState, useRef } from 'react';
-import { Sparkles, Gift, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 
 interface VictorySequenceProps {
   onRestart: () => void;
@@ -8,57 +7,48 @@ interface VictorySequenceProps {
 
 const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
   const [stage, setStage] = useState(0);
-  const [showButton, setShowButton] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => setStage(1), 500); 
-    setTimeout(() => setStage(2), 3500); 
+    // Cinematic Timeline
+    setTimeout(() => setStage(1), 2000); 
+    setTimeout(() => setStage(2), 6000); 
     setTimeout(() => setStage(3), 10000); 
-    setTimeout(() => setShowButton(true), 15000);
+    setTimeout(() => setStage(4), 15000);
   }, []);
 
   return (
-    <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center overflow-hidden text-white font-mono">
+    <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center overflow-hidden text-white font-serif">
       
-      {/* Matrix Background */}
-      <div className="absolute inset-0 overflow-hidden opacity-20 pointer-events-none">
-          {[...Array(20)].map((_, i) => (
-             <div key={i} className="absolute text-green-500 text-xs animate-pulse" style={{
-                 left: `${Math.random()*100}%`, top: `${Math.random()*100}%`,
-                 writingMode: 'vertical-rl'
-             }}>
-                 0101011101010101
-             </div>
-          ))}
+      {/* Stage 1: The Machine Activates */}
+      <div className={`transition-opacity duration-2000 ${stage === 1 ? 'opacity-100' : 'opacity-0'} text-center`}>
+          <div className="text-6xl text-white mb-4 animate-pulse">⚙</div>
+          <p className="text-slate-400 tracking-[0.5em] text-sm uppercase">Temporal Engine Online</p>
       </div>
 
-      {/* Stage 1: Terminal Boot */}
-      <div className={`transition-all duration-1000 ${stage === 1 ? 'opacity-100' : 'opacity-0'} text-green-500 text-xl`}>
-         > SYSTEM REBOOT INITIATED...<br/>
-         > K.R.A.M.P.U.S. OFFLINE<br/>
-         > HOLIDAY PROTOCOL RESTORED
-      </div>
+      {/* Stage 2: Destination */}
+      {stage >= 2 && stage < 4 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white transition-opacity duration-[3000ms] animate-[pulse_0.2s_infinite]">
+             <h1 className="text-black text-9xl font-bold font-mono">YEAR 0001</h1>
+          </div>
+      )}
 
-      {/* Stage 2: Message */}
-      <div className={`absolute inset-0 flex items-center justify-center px-8 transition-opacity duration-1000 ${stage === 2 ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="max-w-3xl text-center space-y-8">
-            <h1 className="text-5xl md:text-7xl font-bold text-cyan-400 drop-shadow-[0_0_20px_rgba(6,182,212,0.8)]">
-                MISSION ACCOMPLISHED
-            </h1>
-            <p className="text-xl text-slate-300">
-                The Mainframe is secure. Magic has returned to the grid.
-            </p>
-        </div>
-      </div>
-
-      {/* Stage 3: Button */}
-      <div className={`absolute bottom-20 transition-all duration-1000 ${showButton ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <button 
-            onClick={onRestart}
-            className="px-8 py-4 bg-green-600 hover:bg-green-500 text-white rounded-none border border-green-400 font-bold text-lg shadow-[0_0_20px_rgba(34,197,94,0.5)] flex items-center gap-3"
-          >
-            <ShieldCheck size={24} /> RETURN TO BASE
-          </button>
+      {/* Stage 3: Fade to Black & Cliffhanger */}
+      <div className={`absolute inset-0 bg-black flex flex-col items-center justify-center transition-opacity duration-1000 ${stage >= 3 ? 'opacity-100' : 'opacity-0'}`}>
+          <p className="text-2xl text-slate-300 italic mb-8">
+              "To save the future... I must build the legend."
+          </p>
+          {stage >= 4 && (
+            <div className="mt-12 text-center animate-fade-in-up">
+                <h1 className="text-4xl text-yellow-500 font-christmas mb-2">The Cycle Begins</h1>
+                <p className="text-slate-600 text-sm mb-8">Sleigh Ride 1 Prequel Setup Complete.</p>
+                <button 
+                    onClick={onRestart}
+                    className="text-slate-400 hover:text-white border-b border-transparent hover:border-white pb-1 transition-all uppercase tracking-widest text-xs"
+                >
+                    Return to Menu
+                </button>
+            </div>
+          )}
       </div>
     </div>
   );
