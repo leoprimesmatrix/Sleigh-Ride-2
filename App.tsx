@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import GameCanvas from './components/GameCanvas.tsx';
 import VictorySequence from './components/VictorySequence.tsx';
 import { GameState, GameMode } from './types.ts';
-import { Terminal, Cpu, Play, Power, ShieldAlert, Radio } from 'lucide-react';
+import { Terminal, Cpu, Play, Power, ShieldAlert, Radio, Database, ArrowLeft, XCircle } from 'lucide-react';
 import { soundManager } from './audio.ts';
 
 const App: React.FC = () => {
@@ -102,7 +102,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Main Menu Panel */}
-            <div className="w-full max-w-md bg-black/60 border border-slate-700 backdrop-blur-sm p-1 relative group">
+            <div className="w-full max-w-md bg-black/60 border border-slate-700 backdrop-blur-sm p-1 relative group shadow-2xl">
                 {/* Corner Accents */}
                 <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-cyan-500"/>
                 <div className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-cyan-500"/>
@@ -124,6 +124,14 @@ const App: React.FC = () => {
                             <span className="text-lg tracking-[0.2em] group-hover/btn:text-white transition-colors font-bold">ENGAGE SYSTEM</span>
                         </div>
                     </button>
+
+                    <button onClick={() => setGameState(GameState.INFO)} className="relative overflow-hidden group/btn bg-slate-900 border border-slate-600 hover:border-yellow-500 py-3 px-8 transition-all duration-300">
+                        <div className="absolute inset-0 w-full h-full bg-yellow-500/10 scale-x-0 group-hover/btn:scale-x-100 transition-transform origin-left duration-300"></div>
+                        <div className="flex items-center justify-center gap-3 relative z-10">
+                            <Database className="text-yellow-600 group-hover/btn:text-white transition-colors" size={18} />
+                            <span className="text-sm tracking-[0.2em] group-hover/btn:text-white transition-colors font-bold">DATABASE</span>
+                        </div>
+                    </button>
                     
                     <div className="grid grid-cols-2 gap-2 mt-4">
                         <div className="bg-slate-900/50 border border-slate-800 p-2 text-xs text-slate-500 text-center">
@@ -138,6 +146,98 @@ const App: React.FC = () => {
                 </div>
             </div>
         </div>
+      )}
+
+      {gameState === GameState.INFO && (
+          <div className="z-30 w-full max-w-4xl h-[80vh] bg-black/90 border border-slate-700 backdrop-blur-md p-6 relative flex flex-col overflow-hidden">
+             {/* Header */}
+             <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-4">
+                 <div className="flex items-center gap-4">
+                     <Database className="text-yellow-500 animate-pulse" size={24} />
+                     <h2 className="text-2xl font-bold tracking-widest text-white">SCAVENGER DATABASE</h2>
+                 </div>
+                 <button onClick={() => setGameState(GameState.MENU)} className="text-slate-400 hover:text-white flex items-center gap-2 text-xs tracking-widest uppercase border border-slate-700 px-4 py-2 hover:bg-slate-800 transition-colors">
+                     <XCircle size={16} /> Close Terminal
+                 </button>
+             </div>
+
+             <div className="flex-1 overflow-y-auto grid md:grid-cols-2 gap-6 pr-2 custom-scrollbar">
+                 {/* Enemies */}
+                 <div className="space-y-6">
+                     <h3 className="text-cyan-500 border-b border-cyan-900 pb-1 text-sm tracking-widest uppercase mb-4">Hostile Units</h3>
+                     
+                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-red-500/50 transition-colors">
+                         <div className="w-12 h-12 rounded-full border-2 border-red-500 flex items-center justify-center bg-red-900/20 shrink-0">
+                             <div className="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                         </div>
+                         <div>
+                             <h4 className="text-white font-bold text-sm">SENTINEL DRONE</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Automated hunter units. They patrol the network seeking biological life signs. Contact causes severe hull damage.</p>
+                         </div>
+                     </div>
+
+                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-yellow-500/50 transition-colors">
+                         <div className="w-12 h-12 border-2 border-yellow-500 flex items-center justify-center bg-yellow-900/20 shrink-0">
+                             <div className="w-1 h-8 bg-yellow-500"></div>
+                         </div>
+                         <div>
+                             <h4 className="text-white font-bold text-sm">SERVER MONOLITH</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Ancient data towers. Indestructible. Navigate around them. Some emit active cooling vents.</p>
+                         </div>
+                     </div>
+
+                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-blue-500/50 transition-colors">
+                         <div className="w-12 h-12 border-2 border-blue-500 flex items-center justify-center bg-blue-900/20 shrink-0">
+                             <div className="w-8 h-1 bg-blue-500 shadow-[0_0_10px_#3b82f6]"></div>
+                         </div>
+                         <div>
+                             <h4 className="text-white font-bold text-sm">ENERGY BARRIER</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">High-voltage arcs. Can be disabled temporarily with an EMP blast.</p>
+                         </div>
+                     </div>
+                 </div>
+
+                 {/* Powerups */}
+                 <div className="space-y-6">
+                     <h3 className="text-green-500 border-b border-green-900 pb-1 text-sm tracking-widest uppercase mb-4">Resources</h3>
+
+                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
+                         <div className="w-12 h-12 rounded-full border border-cyan-500 flex items-center justify-center bg-cyan-900/20 shrink-0 text-cyan-400">
+                             <Power size={20} />
+                         </div>
+                         <div>
+                             <h4 className="text-cyan-400 font-bold text-sm">ENERGY CELL</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Restores capacitor charge. Required for EMP Blasts.</p>
+                         </div>
+                     </div>
+
+                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
+                         <div className="w-12 h-12 rounded-full border border-green-500 flex items-center justify-center bg-green-900/20 shrink-0 text-green-400">
+                             <div className="text-xl font-bold">+</div>
+                         </div>
+                         <div>
+                             <h4 className="text-green-400 font-bold text-sm">NANOBOT REPAIR</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Repairs hull integrity by 30%. Critical for survival.</p>
+                         </div>
+                     </div>
+                     
+                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
+                        <div className="w-12 h-12 rounded-full border border-purple-500 flex items-center justify-center bg-purple-900/20 shrink-0 text-purple-400">
+                             <ShieldAlert size={20} />
+                         </div>
+                         <div>
+                             <h4 className="text-purple-400 font-bold text-sm">PHASE SHIELD</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Provides temporary invulnerability to all damage sources.</p>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+             
+             <div className="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
+                 <span>DATABASE VER: 2.1.0</span>
+                 <span>ACCESS LEVEL: RESTRICTED</span>
+             </div>
+          </div>
       )}
 
       {isLoading && (

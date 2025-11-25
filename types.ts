@@ -1,6 +1,7 @@
 
 export enum GameState {
   MENU,
+  INFO,
   HELP,
   INTRO,
   PLAYING,
@@ -102,6 +103,7 @@ export interface LevelConfig {
     sky: [string, string];
     grid: string;
     fog: string;
+    aurora: string; // Added for visual flair
   };
   obstacleSpeed: number;
   spawnRate: number;

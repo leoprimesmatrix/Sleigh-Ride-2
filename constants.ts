@@ -27,35 +27,61 @@ export const LEVELS: LevelConfig[] = [
   {
     name: "SECTOR 01", 
     subtext: "THE DEAD NETWORK",
-    colors: { sky: ['#020617', '#0f172a'], grid: '#1e293b', fog: 'rgba(15, 23, 42, 0.8)' },
+    // Changed to deep blues/purples instead of black
+    colors: { 
+      sky: ['#0f172a', '#1e1b4b'], 
+      grid: '#3b82f6', 
+      fog: 'rgba(30, 27, 75, 0.6)',
+      aurora: '#0ea5e9' 
+    },
     obstacleSpeed: 1.0,
     spawnRate: 1.0,
   },
   {
     name: "SECTOR 02", 
     subtext: "BIOME DECAY",
-    colors: { sky: ['#0c0a09', '#1c1917'], grid: '#292524', fog: 'rgba(28, 25, 23, 0.8)' },
+    colors: { 
+      sky: ['#2e1065', '#4c1d95'], 
+      grid: '#a855f7', 
+      fog: 'rgba(76, 29, 149, 0.6)',
+      aurora: '#d8b4fe'
+    },
     obstacleSpeed: 1.2,
     spawnRate: 1.2,
   },
   {
     name: "SECTOR 03", 
     subtext: "FABRICATION PLANT",
-    colors: { sky: ['#2a0a0a', '#450a0a'], grid: '#571c1c', fog: 'rgba(69, 10, 10, 0.8)' },
+    colors: { 
+      sky: ['#450a0a', '#7f1d1d'], 
+      grid: '#f87171', 
+      fog: 'rgba(127, 29, 29, 0.6)',
+      aurora: '#fca5a5'
+    },
     obstacleSpeed: 1.4,
     spawnRate: 1.3, 
   },
   {
     name: "SECTOR 04", 
     subtext: "THE ZERO POINT",
-    colors: { sky: ['#0f172a', '#334155'], grid: '#94a3b8', fog: 'rgba(51, 65, 85, 0.8)' },
+    colors: { 
+      sky: ['#022c22', '#115e59'], 
+      grid: '#2dd4bf', 
+      fog: 'rgba(17, 94, 89, 0.6)',
+      aurora: '#5eead4'
+    },
     obstacleSpeed: 1.6,
     spawnRate: 1.5,
   },
   {
     name: "CHRONOS", 
     subtext: "TEMPORAL GATE",
-    colors: { sky: ['#000000', '#000000'], grid: '#ffffff', fog: 'rgba(0,0,0,0)' },
+    colors: { 
+      sky: ['#000000', '#ffffff'], 
+      grid: '#ffffff', 
+      fog: 'rgba(255,255,255,0.2)',
+      aurora: '#ffffff'
+    },
     obstacleSpeed: 0, 
     spawnRate: 0,
   }
