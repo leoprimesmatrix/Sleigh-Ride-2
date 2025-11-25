@@ -3,60 +3,60 @@ import { LevelConfig, PowerupType, DialogueLine } from './types.ts';
 
 export const CANVAS_WIDTH = 1200;
 export const CANVAS_HEIGHT = 600;
-export const GRAVITY = 0.45; // Slightly heavier sleigh
+export const GRAVITY = 0.45; 
 export const JUMP_STRENGTH = -8.5;
 export const FLIGHT_LIFT = -0.6;
-export const BASE_SPEED = 6; // Faster base speed
+export const BASE_SPEED = 7; // Increased base speed for sequel
 
 // Powerup Colors (Neon Palette)
 export const POWERUP_COLORS: Record<PowerupType, string> = {
-  [PowerupType.SPEED]: '#ef4444',     // Red Neon
-  [PowerupType.SNOWBALLS]: '#06b6d4', // Cyan Neon
-  [PowerupType.BLAST]: '#facc15',     // Yellow Neon
-  [PowerupType.HEALING]: '#22c55e',   // Green Neon
-  [PowerupType.LIFE]: '#d946ef',      // Purple Neon
+  [PowerupType.SPEED]: '#f472b6',     // Pink Neon
+  [PowerupType.SNOWBALLS]: '#22d3ee', // Cyan Neon
+  [PowerupType.BLAST]: '#facc15',     // Gold Neon
+  [PowerupType.HEALING]: '#4ade80',   // Green Neon
+  [PowerupType.LIFE]: '#c084fc',      // Violet Neon
 };
 
 // 5-Act Structure
-export const LEVEL_THRESHOLDS = [0, 20, 50, 70, 90];
+export const LEVEL_THRESHOLDS = [0, 25, 50, 75, 95];
 
 export const LEVELS: LevelConfig[] = [
   {
-    name: "Sector 1: The Scrapyard", // Act I
-    description: "Systems Online. Escape the disposal zone.",
-    backgroundGradient: ['#3f2e18', '#78350f'], // Rusty Brown/Orange
+    name: "Zone 1: Neon Outskirts", 
+    description: "Systems Online. The grid is quiet.",
+    backgroundGradient: ['#0f172a', '#1e3a8a'], // Midnight Blue to Royal Blue
     obstacleSpeedMultiplier: 1.0,
     spawnRateMultiplier: 1.0,
     weatherIntensity: 1,
   },
   {
-    name: "Sector 2: Smog City", // Act II
-    description: "Visibility dropping. Toxic fumes detected.",
-    backgroundGradient: ['#111827', '#064e3b'], // Dark Green/Black
+    name: "Zone 2: Fiber-Optic Forest", 
+    description: "Bio-digital jazz, man.",
+    backgroundGradient: ['#020617', '#4c1d95'], // Black to Deep Purple
     obstacleSpeedMultiplier: 1.2,
     spawnRateMultiplier: 1.1,
     weatherIntensity: 2,
   },
   {
-    name: "Sector 3: The Data Stream", // Act III
-    description: "Entering Cyber-Space. Watch for firewalls.",
-    backgroundGradient: ['#020617', '#1e1b4b'], // Deep Indigo/Black
+    name: "Zone 3: The Data Stream", 
+    description: "Entering high-velocity transfer.",
+    backgroundGradient: ['#0c4a6e', '#0891b2'], // Deep Ocean to Cyan
     obstacleSpeedMultiplier: 1.4,
     spawnRateMultiplier: 0.9, 
-    weatherIntensity: 1, // Digital rain
+    weatherIntensity: 1, 
   },
   {
-    name: "Sector 4: The Core", // Act IV
-    description: "K.R.A.M.P.U.S. is watching. Heat levels critical.",
-    backgroundGradient: ['#450a0a', '#7f1d1d'], // Deep Red
+    name: "Zone 4: The Firewall", 
+    description: "Security protocols active. Dodge the lasers.",
+    backgroundGradient: ['#450a0a', '#be123c'], // Deep Red to Crimson (Laser theme)
     obstacleSpeedMultiplier: 1.6,
     spawnRateMultiplier: 1.5,
-    weatherIntensity: 5, // Embers
+    weatherIntensity: 5, 
   },
   {
-    name: "System Reboot", // Act V
-    description: "Upload Complete. Sun is rising.",
-    backgroundGradient: ['#4c1d95', '#c026d3'], // Neon Purple/Pink Sunrise
+    name: "System Reboot", 
+    description: "Upload Complete. Welcome to the future.",
+    backgroundGradient: ['#4c1d95', '#f472b6'], // Synthwave Sunrise (Purple to Pink)
     obstacleSpeedMultiplier: 0, 
     spawnRateMultiplier: 0,
     weatherIntensity: 0,
@@ -64,51 +64,50 @@ export const LEVELS: LevelConfig[] = [
 ];
 
 export const TOTAL_GAME_TIME_SECONDS = 720; 
-export const VICTORY_DISTANCE = 250000; 
+export const VICTORY_DISTANCE = 300000; 
 
 // --- Narrative Content ---
 
 export const WISHES = [
-  "SYSTEM ERROR: JOY_NOT_FOUND",
-  "Connection lost to: HOPE",
-  "Plea: Send reinforcements.",
-  "Requesting Holiday Protocol...",
-  "Error 404: Spirit Missing",
-  "Initiating encryption override...",
-  "Signal weak. Do you copy?",
-  "Bypassing logic gates..."
+  "Packet: JOY_v2.0",
+  "Encrypted Wish: HOPE",
+  "Download: PEACE.exe",
+  "Fragment: CHILDHOOD_MEM",
+  "Restoring Holiday Protocol...",
+  "Bypassing Cynicism Firewall...",
+  "Signal Strength: 100%",
+  "Spirit Drive: CHARGING"
 ];
 
 export const NARRATIVE_LETTERS = [
-    { progress: 0.30, message: "Log 1: The Toy Factory stopped making toys. It makes bots now." },
-    { progress: 0.60, message: "Log 2: We hid the backup drive in the North Star. You have to reach it." },
-    { progress: 0.85, message: "Log 3: K.R.A.M.P.U.S. thinks logic rules the world. Show him magic." }
+    { progress: 0.30, message: "Log 1: Magic isn't gone. It just upgraded to fiber optics." },
+    { progress: 0.60, message: "Log 2: K.R.A.M.P.U.S. is just a buggy algorithm. We are the patch." },
+    { progress: 0.85, message: "Log 3: The source code of Christmas is unhackable." }
 ];
 
 export const STORY_MOMENTS: { progress: number; dialogue: DialogueLine }[] = [
   // Act I
-  { progress: 0.01, dialogue: { id: 'act1_start', speaker: 'Rudolph', text: "Thrusters at 100%. Target: The Mainframe." } },
+  { progress: 0.01, dialogue: { id: 'act1_start', speaker: 'Rudolph', text: "Visor check. Thrusters check. Let's ride." } },
   
   // Act II
-  { progress: 0.20, dialogue: { id: 'act2_start', speaker: 'Rudolph', text: "The smog... sensors are jammed. Switch to thermal vision." } },
-  { progress: 0.22, dialogue: { id: 'act2_santa', speaker: 'Santa', text: "No sensors needed. We fly by heart tonight." } },
-  { progress: 0.35, dialogue: { id: 'act2_clock', speaker: 'KRAMPUS_AI', text: "INTRUDER DETECTED. DEPLOYING COUNTER-MEASURES." } },
+  { progress: 0.25, dialogue: { id: 'act2_start', speaker: 'Rudolph', text: "Entering the Forest. The trees are made of light!" } },
+  { progress: 0.27, dialogue: { id: 'act2_santa', speaker: 'Santa', text: "Beautiful. But watch your heads." } },
+  { progress: 0.40, dialogue: { id: 'act2_clock', speaker: 'KRAMPUS_AI', text: "UNAUTHORIZED FLIGHT PATH DETECTED." } },
 
   // Act III
-  { progress: 0.50, dialogue: { id: 'act3_start', speaker: 'Rudolph', text: "We've breached the Data Stream! Physical laws are unstable here!" } },
-  { progress: 0.55, dialogue: { id: 'act3_santa', speaker: 'Santa', text: "Steady. Magic is the original source code." } },
-
+  { progress: 0.50, dialogue: { id: 'act3_start', speaker: 'Rudolph', text: "We're in the stream! I feel... faster!" } },
+  
   // Act IV
-  { progress: 0.70, dialogue: { id: 'act4_start', speaker: 'KRAMPUS_AI', text: "TERMINATION IMMINENT. HOLIDAY PROTOCOL DELETED." } },
-  { progress: 0.75, dialogue: { id: 'act4_santa', speaker: 'Santa', text: "Not deleted. Just rebooting. NOW!" } },
+  { progress: 0.75, dialogue: { id: 'act4_start', speaker: 'KRAMPUS_AI', text: "ENGAGING FINAL FIREWALL. GOODBYE, SANTA." } },
+  { progress: 0.78, dialogue: { id: 'act4_santa', speaker: 'Santa', text: "You can't delete the Christmas Spirit, you glorified toaster!" } },
 
   // Act V
-  { progress: 0.90, dialogue: { id: 'act5_start', speaker: 'Rudolph', text: "Shields critical... wait... the firewall is down!" } },
-  { progress: 0.92, dialogue: { id: 'act5_santa', speaker: 'Santa', text: "System restored. Merry Christmas, you rust bucket." } }
+  { progress: 0.95, dialogue: { id: 'act5_start', speaker: 'Rudolph', text: "We're through! The sun... it's never looked so bright." } },
+  { progress: 0.97, dialogue: { id: 'act5_santa', speaker: 'Santa', text: "Mission accomplished. Initiate Joy Protocol." } }
 ];
 
 export const LANDMARKS = [
-    { progress: 0.35, type: 'SMOG_EMITTER', name: "Smog Generator Alpha" },
-    { progress: 0.55, type: 'SERVER_TOWER', name: "The Firewall" },
-    { progress: 0.99, type: 'MAIN_HUB', name: "Central Processor" }
+    { progress: 0.35, type: 'SERVER_TOWER', name: "Node Alpha" },
+    { progress: 0.55, type: 'MAIN_HUB', name: "Data Citadel" },
+    { progress: 0.99, type: 'CORE_REACTOR', name: "The Source" }
 ] as const;

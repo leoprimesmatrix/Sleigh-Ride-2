@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Battery, Zap, Shield, Radio, Activity, Code, AlertTriangle, Plus, Cpu } from 'lucide-react';
+import { Battery, Zap, Shield, Radio, Activity, Code, AlertTriangle, Plus, Cpu, Disc } from 'lucide-react';
 import { Player, PowerupType, DialogueLine } from '../types.ts';
 import { POWERUP_COLORS } from '../constants.ts';
 
@@ -43,11 +43,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
   const getPowerupConfig = (type: PowerupType) => {
       switch (type) {
-          case PowerupType.SPEED: return { icon: Zap, label: "OVERCLOCK", color: POWERUP_COLORS[type] };
-          case PowerupType.SNOWBALLS: return { icon: Cpu, label: "AMMO", color: POWERUP_COLORS[type] };
-          case PowerupType.BLAST: return { icon: Activity, label: "EMP BLAST", color: POWERUP_COLORS[type] };
-          case PowerupType.HEALING: return { icon: Plus, label: "REPAIR", color: POWERUP_COLORS[type] };
-          case PowerupType.LIFE: return { icon: Battery, label: "BACKUP BATTERY", color: POWERUP_COLORS[type] };
+          case PowerupType.SPEED: return { icon: Zap, label: "TURBO", color: POWERUP_COLORS[type] };
+          case PowerupType.SNOWBALLS: return { icon: Disc, label: "DISCS", color: POWERUP_COLORS[type] };
+          case PowerupType.BLAST: return { icon: Activity, label: "PURGE", color: POWERUP_COLORS[type] };
+          case PowerupType.HEALING: return { icon: Plus, label: "PATCH", color: POWERUP_COLORS[type] };
+          case PowerupType.LIFE: return { icon: Battery, label: "EXTEND", color: POWERUP_COLORS[type] };
           default: return { icon: Zap, label: "UPGRADE", color: "#fff" };
       }
   };
@@ -61,11 +61,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   const isLowTime = timeLeft < 30;
   
   return (
-    <div className="absolute inset-0 flex flex-col justify-between p-6 pointer-events-none z-20 font-mono">
+    <div className="absolute inset-0 flex flex-col justify-between p-6 pointer-events-none z-20 font-mono tracking-wider">
       
-      {/* Scan Lines Overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none z-0 mix-blend-overlay"></div>
-
       {/* Popups */}
       <div className="absolute inset-0 flex items-center justify-center overflow-hidden z-20">
         {popups.map(p => {
@@ -76,45 +73,39 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                     className="absolute animate-powerup-pop flex flex-col items-center justify-center"
                     onAnimationEnd={() => handleAnimationEnd(p.id)}
                 >
-                    <div className="p-4 rounded-lg bg-black/80 border border-white/50 mb-2 shadow-[0_0_15px_currentColor]" style={{ color: color, borderColor: color }}>
-                        <Icon size={48} strokeWidth={2.5} />
+                    <div className="p-4 rounded-full border-2 mb-2 backdrop-blur-md" style={{ color: color, borderColor: color, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                        <Icon size={40} strokeWidth={3} />
                     </div>
-                    <span className="font-bold text-2xl uppercase tracking-widest bg-black/50 px-2" style={{ color: color }}>{label}</span>
+                    <span className="font-black text-xl uppercase tracking-[0.2em]" style={{ color: color, textShadow: `0 0 10px ${color}` }}>{label}</span>
                 </div>
             );
         })}
       </div>
 
-      {/* Log Notification */}
+      {/* Narrative Wish Popup */}
       {activeWish && (
-          <div className="absolute top-28 right-4 flex flex-col items-end animate-slide-in-right z-30">
-             <div className="bg-slate-900/90 text-green-400 pl-4 pr-6 py-3 border-r-4 border-green-500 max-w-sm text-right flex items-center gap-3 shadow-[0_0_20px_rgba(34,197,94,0.2)]">
-                 <div className="animate-pulse">
-                    <Code size={20} />
+          <div className="absolute top-32 right-8 flex flex-col items-end animate-slide-in-right z-30">
+             <div className="bg-slate-900/80 backdrop-blur border-l-4 border-cyan-400 pl-6 pr-4 py-4 max-w-sm text-right shadow-[0_0_20px_rgba(34,211,238,0.2)]">
+                 <div className="flex items-center justify-end gap-2 text-cyan-400 mb-1">
+                     <span className="text-[10px] uppercase font-bold">Decrypted Fragment</span>
+                     <Code size={16} />
                  </div>
-                 <div className="flex flex-col">
-                     <span className="text-[10px] uppercase tracking-widest text-green-600 font-bold">Encrypted Data Found</span>
-                     <p className="font-mono text-sm leading-tight">"{activeWish}"</p>
-                 </div>
+                 <p className="font-mono text-white text-sm">"{activeWish}"</p>
              </div>
           </div>
       )}
 
       {/* Dialogue Box */}
       {activeDialogue && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/80 border-t-2 border-slate-700 pb-8 pt-6 flex justify-center animate-slide-up z-20">
-             <div className="flex flex-col items-center text-center max-w-4xl px-4">
-                <h4 className={`font-bold uppercase text-xs tracking-[0.3em] mb-2 flex items-center gap-2 ${
-                    activeDialogue.speaker === 'Santa' ? 'text-red-500' : 
-                    activeDialogue.speaker === 'Rudolph' ? 'text-cyan-400' : 'text-red-700'
+          <div className="absolute bottom-12 left-0 right-0 flex justify-center animate-slide-up z-20">
+             <div className="bg-black/80 backdrop-blur-lg border border-slate-700 px-8 py-6 rounded-2xl max-w-3xl text-center shadow-2xl relative">
+                <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-1 rounded uppercase tracking-[0.2em] ${
+                    activeDialogue.speaker === 'Santa' ? 'bg-red-600 text-white' : 
+                    activeDialogue.speaker === 'Rudolph' ? 'bg-cyan-600 text-white' : 'bg-yellow-600 text-black'
                 }`}>
-                    {activeDialogue.speaker === 'KRAMPUS_AI' && <AlertTriangle size={12} />}
                     {activeDialogue.speaker}
-                    {activeDialogue.speaker === 'KRAMPUS_AI' && <AlertTriangle size={12} />}
-                </h4>
-                <p className={`text-xl md:text-2xl font-bold tracking-wide leading-snug ${
-                     activeDialogue.speaker === 'KRAMPUS_AI' ? 'text-red-600 font-mono uppercase' : 'text-white font-sans'
-                }`}>
+                </div>
+                <p className="text-xl md:text-2xl font-bold text-white drop-shadow-md">
                     "{activeDialogue.text}"
                 </p>
              </div>
@@ -122,67 +113,56 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       )}
 
       {/* Top HUD */}
-      <div className="flex items-start justify-between w-full z-10 relative">
+      <div className="flex items-start justify-between w-full z-10">
         
-        {/* Left: Status */}
-        <div className="flex flex-col gap-2 animate-slide-in-left">
-          {/* Health Bar */}
-          <div className="flex items-center gap-1">
-             <span className="text-[10px] text-slate-500 uppercase font-bold w-12">Shields</span>
+        {/* Left: Vitals */}
+        <div className="flex flex-col gap-4">
+          {/* Integrity */}
+          <div className="flex items-center gap-2">
+             <Shield size={16} className="text-cyan-400" />
              <div className="flex gap-1">
                 {[1, 2, 3].map((i) => (
-                    <div key={i} className={`h-3 w-8 skew-x-[-12deg] border border-slate-600 ${i <= lives ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'bg-slate-900'}`} />
+                    <div key={i} className={`h-2 w-8 rounded-full transition-all ${i <= lives ? 'bg-cyan-400 shadow-[0_0_10px_#22d3ee]' : 'bg-slate-800'}`} />
                 ))}
              </div>
           </div>
 
-          {/* Ammo Bar */}
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-slate-500 uppercase font-bold w-12">Plasma</span>
-            <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1 rounded border border-slate-700">
-                <Zap size={14} className="text-yellow-400" />
-                <span className="text-yellow-400 font-bold font-mono">{snowballs}</span>
+          {/* Ammo */}
+          <div className="flex items-center gap-2">
+            <Disc size={16} className="text-pink-400" />
+            <div className="bg-slate-900/50 backdrop-blur border border-pink-500/30 px-3 py-1 rounded-full">
+                <span className="text-pink-400 font-bold">{snowballs}</span>
             </div>
           </div>
         </div>
 
-        {/* Center: Mission Clock */}
-        <div className="flex flex-col items-center animate-fade-in-down">
+        {/* Center: Timer & Location */}
+        <div className="flex flex-col items-center">
           <div className={`
-            flex items-center gap-3 text-2xl font-black px-6 py-1 rounded-sm border
-            ${isLowTime ? 'bg-red-900/80 border-red-500 text-red-100 animate-pulse' : 'bg-slate-900/80 border-cyan-500/50 text-cyan-100'}
+            text-3xl font-black px-6 py-2 rounded-lg border backdrop-blur-md shadow-lg
+            ${isLowTime ? 'border-red-500 text-red-100 bg-red-900/40 animate-pulse' : 'border-cyan-500/30 text-white bg-slate-900/40'}
           `}>
-            <span className="text-[10px] uppercase tracking-widest opacity-50">T-Minus</span>
-            <span className="tabular-nums font-mono">{formatTime(timeLeft)}</span>
+            {formatTime(timeLeft)}
           </div>
-          
-          <div className="mt-1 text-center">
-            <h2 className="text-white font-bold text-sm tracking-[0.2em] uppercase text-shadow-blue">
-                {currentLevelName}
-            </h2>
+          <div className="mt-2 text-[10px] uppercase tracking-[0.3em] text-cyan-200/70">
+            {currentLevelName}
           </div>
         </div>
 
         {/* Right: Score */}
-        <div className="animate-slide-in-right">
-             <div className="flex flex-col items-end">
-                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Data Mined</div>
-                <div className="text-2xl font-black text-green-400 font-mono tabular-nums shadow-green-glow">
-                    {Math.floor(score).toLocaleString()}
-                </div>
+        <div className="text-right">
+             <div className="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Score</div>
+             <div className="text-2xl font-black text-cyan-400 tabular-nums shadow-cyan-glow">
+                {Math.floor(score).toLocaleString()}
              </div>
         </div>
       </div>
 
-      {/* Bottom Bar: Progress */}
-      <div className="w-full max-w-4xl mx-auto mb-2 animate-slide-up z-10">
-         <div className="flex justify-between text-[10px] font-bold mb-1 px-1 text-slate-500 uppercase tracking-widest">
-            <span>Entry</span>
-            <span>Core</span>
-         </div>
-         <div className="h-1 bg-slate-800 w-full relative">
+      {/* Bottom Progress Line */}
+      <div className="w-full max-w-4xl mx-auto mb-2 animate-slide-up z-10 relative">
+         <div className="h-[2px] bg-slate-800 w-full overflow-hidden rounded-full">
             <div 
-              className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)] transition-all duration-200 ease-linear"
+              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 shadow-[0_0_15px_#22d3ee]"
               style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
             />
          </div>
