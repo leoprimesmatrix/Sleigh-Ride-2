@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Battery, Zap, Shield, Radio, Activity, Code, AlertTriangle, Plus, Cpu, Disc } from 'lucide-react';
 import { Player, PowerupType, DialogueLine } from '../types.ts';
@@ -87,7 +86,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           <div className="absolute top-32 right-8 flex flex-col items-end animate-slide-in-right z-30">
              <div className="bg-slate-900/90 backdrop-blur-xl border-r-4 border-cyan-400 pl-6 pr-4 py-4 max-w-sm text-right shadow-[0_0_30px_rgba(34,211,238,0.2)] rounded-l-lg">
                  <div className="flex items-center justify-end gap-2 text-cyan-400 mb-1">
-                     <span className="text-[10px] uppercase font-bold tracking-widest">Decrypted Fragment</span>
+                     <span className="text-[10px] uppercase font-bold tracking-widest">DATA FRAGMENT</span>
                      <Code size={16} />
                  </div>
                  <p className="font-christmas text-white text-xl text-yellow-300">"{activeWish}"</p>
@@ -100,8 +99,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           <div className="absolute bottom-12 left-0 right-0 flex justify-center animate-slide-up z-20">
              <div className="bg-black/90 backdrop-blur-lg border border-slate-700 px-8 py-6 rounded-2xl max-w-3xl text-center shadow-2xl relative">
                 <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-4 py-1 rounded-full uppercase tracking-[0.2em] shadow-lg ${
-                    activeDialogue.speaker === 'Santa' ? 'bg-red-600 text-white' : 
-                    activeDialogue.speaker === 'Rudolph' ? 'bg-cyan-600 text-white' : 'bg-yellow-600 text-black'
+                    activeDialogue.speaker === 'KOMET' ? 'bg-yellow-500 text-black' : 
+                    activeDialogue.speaker === 'VIXEN' ? 'bg-purple-600 text-white' : 'bg-red-600 text-white'
                 }`}>
                     {activeDialogue.speaker}
                 </div>
@@ -130,7 +129,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           {/* Ammo */}
           <div className="flex items-center gap-3 bg-black/40 backdrop-blur-sm p-2 rounded-lg border border-white/10">
             <Disc size={20} className="text-pink-400" />
-            <div className="text-pink-400 font-bold text-lg font-christmas">{snowballs} <span className="text-xs font-mono text-pink-400/70">BOLTS</span></div>
+            <div className="text-pink-400 font-bold text-lg font-christmas">{snowballs} <span className="text-xs font-mono text-pink-400/70">PLASMA</span></div>
           </div>
         </div>
 
@@ -159,7 +158,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       {/* Bottom Progress Line */}
       <div className="w-full max-w-4xl mx-auto mb-4 animate-slide-up z-10 relative">
          <div className="flex justify-between text-[10px] text-slate-400 uppercase tracking-widest mb-1 px-1">
-             <span>Start</span>
+             <span>Insertion</span>
              <span>Extraction</span>
          </div>
          <div className="h-2 bg-slate-800 w-full overflow-hidden rounded-full border border-slate-700">

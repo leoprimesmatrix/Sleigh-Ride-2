@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   GameState, Player, Obstacle, Powerup, Letter, Projectile, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark
@@ -24,7 +23,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
   // Entities
   const playerRef = useRef<Player>({
-    id: 0, x: 150, y: 300, width: 80, height: 40, markedForDeletion: false,
+    id: 0, x: 150, y: 300, width: 90, height: 35, markedForDeletion: false,
     vy: 0, lives: 3, snowballs: 0, isInvincible: false, invincibleTimer: 0,
     healingTimer: 0, speedTimer: 0, angle: 0
   });
@@ -113,7 +112,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (gameState !== GameState.PLAYING) return;
       
       if (e.code === 'Space' || e.code === 'ArrowUp') {
-        e.preventDefault(); // FIX: Prevent scrolling
+        e.preventDefault(); 
         if (!isEndingSequenceRef.current) {
             playerRef.current.vy = JUMP_STRENGTH;
             soundManager.playJump();
@@ -130,10 +129,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     };
     
     const handleTouch = (e: TouchEvent) => {
-       // Prevent default only if playing to avoid blocking UI touches if we had any
        if (gameState === GameState.MENU) soundManager.init();
        if (gameState === GameState.PLAYING && !isEndingSequenceRef.current) {
-          // e.preventDefault(); // Sometimes needed for mobile, but can block buttons
           playerRef.current.vy = JUMP_STRENGTH;
           soundManager.playJump();
           createParticles(playerRef.current.x, playerRef.current.y + 30, ParticleType.FIRE, 8, '#22d3ee');
@@ -174,7 +171,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
     const resetGame = () => {
       playerRef.current = {
-        id: 0, x: 150, y: 300, width: 80, height: 40, markedForDeletion: false,
+        id: 0, x: 150, y: 300, width: 90, height: 35, markedForDeletion: false,
         vy: 0, lives: 3, snowballs: 0, isInvincible: false, invincibleTimer: 0,
         healingTimer: 0, speedTimer: 0, angle: 0
       };
@@ -327,7 +324,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           player.vy += GRAVITY * timeScale;
           player.y += player.vy * timeScale;
           player.angle += ((Math.min(Math.max(player.vy * 0.05, -0.4), 0.4)) - player.angle) * 0.1 * timeScale;
-          // TRON Trail
+          // Plasma Trail
           if(Math.random() < 0.5) createParticles(player.x, player.y + 20, ParticleType.GLOW, 1, '#22d3ee'); 
       }
       
@@ -611,45 +608,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       ctx.save(); ctx.translate(p.x + p.width/2, p.y + p.height/2); ctx.rotate(p.angle);
       if (p.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) { ctx.restore(); return; }
       
-      // Sleigh 2.0 - Sleek, Aerodynamic, Dark with Neon Trim
-      ctx.shadowColor = "#ef4444"; ctx.shadowBlur = 15;
+      // THE MK-V "Light-Skipper" Prototype
+      // A sleek, single-pilot hover bike design
+      ctx.shadowColor = "#22d3ee"; ctx.shadowBlur = 20;
       
-      // Main Body (Cyber-Red)
-      ctx.fillStyle = "#dc2626"; 
+      // Main Chassis (White/Silver)
+      ctx.fillStyle = "#e2e8f0"; 
       ctx.beginPath();
-      // Futuristic wedge shape
-      ctx.moveTo(40, 0);
-      ctx.lineTo(-30, 15);
-      ctx.lineTo(-40, -5);
-      ctx.lineTo(-20, -20);
-      ctx.lineTo(20, -15);
-      ctx.closePath();
+      ctx.ellipse(0, 5, 45, 10, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Neon Runner
-      ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 4; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(-30, 25); ctx.lineTo(30, 20); ctx.stroke();
+      // Engine Core (Cyan)
+      ctx.fillStyle = "#22d3ee";
+      ctx.beginPath();
+      ctx.arc(-10, 5, 8, 0, Math.PI*2);
+      ctx.fill();
+
+      // Rear Thrusters
+      ctx.fillStyle = "#f472b6"; // Pink Exhaust
+      ctx.fillRect(-50, 0, 10, 10);
       
-      // Connector struts
-      ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
-      ctx.beginPath(); 
-      ctx.moveTo(-20, 10); ctx.lineTo(-20, 25);
-      ctx.moveTo(10, 5); ctx.lineTo(10, 22);
+      // Pilot: Komet
+      // Head/Helmet
+      ctx.fillStyle = "#facc15"; // Yellow Helmet (Komet's signature)
+      ctx.beginPath(); ctx.arc(10, -5, 10, 0, Math.PI*2); ctx.fill();
+      // Visor
+      ctx.fillStyle = "#000";
+      ctx.fillRect(10, -8, 10, 4);
+
+      // Scarf (Trailing)
+      ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(5, -2);
+      ctx.quadraticCurveTo(-20, -10 + Math.sin(Date.now()/100)*5, -40, -5);
       ctx.stroke();
-
-      // Engine Glow (Back)
-      ctx.fillStyle = "#22d3ee"; ctx.shadowColor = "#22d3ee"; ctx.shadowBlur = 20;
-      ctx.fillRect(-45, -5, 5, 10);
-
-      // Santa (Holographic Visor)
-      ctx.shadowBlur = 0;
-      // Face
-      ctx.fillStyle = "#fecaca"; ctx.beginPath(); ctx.arc(0, -20, 12, 0, Math.PI*2); ctx.fill(); 
-      // Hat
-      ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.moveTo(-12, -24); ctx.lineTo(12, -24); ctx.lineTo(0, -40); ctx.fill();
-      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -40, 4, 0, Math.PI*2); ctx.fill(); // Pom pom
-      // Cyber Visor
-      ctx.fillStyle = "#22d3ee"; ctx.fillRect(2, -24, 10, 4);
 
       ctx.restore();
   };

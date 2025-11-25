@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import GameCanvas from './components/GameCanvas.tsx';
 import VictorySequence from './components/VictorySequence.tsx';
 import { GameState, PowerupType, GameMode } from './types.ts';
 import { Play, HelpCircle, ArrowLeft, Loader2, FileText, Cpu, Crosshair, Star } from 'lucide-react';
 
-const CURRENT_VERSION = '2.0.1';
+const CURRENT_VERSION = '2.0.1 (Gaiden)';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -68,11 +67,14 @@ const App: React.FC = () => {
           <div className="text-center w-full bg-black/40 backdrop-blur-xl border-y border-cyan-500/30 p-12 mb-8 relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50"></div>
             
-            <h1 className="text-7xl md:text-8xl mb-2 text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] font-christmas tracking-wide">
-              Sleigh Ride
+            <h1 className="text-6xl md:text-8xl mb-2 text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] font-christmas tracking-wide">
+              Neon Protocol
             </h1>
-            <div className="flex items-center justify-center gap-4 text-cyan-400 text-2xl tracking-[0.5em] font-bold uppercase">
-                <span className="text-pink-500">★</span> 2.0 Cyber-Sleigh <span className="text-pink-500">★</span>
+            <div className="flex items-center justify-center gap-4 text-cyan-400 text-xl tracking-[0.3em] font-bold uppercase">
+                <span className="text-yellow-500">★</span> A Sleigh Ride Spin-Off <span className="text-yellow-500">★</span>
+            </div>
+            <div className="mt-4 text-xs text-slate-400 tracking-widest uppercase">
+                Feat. Komet & The MK-V Prototype
             </div>
           </div>
           
@@ -84,7 +86,7 @@ const App: React.FC = () => {
               >
                   <div className="absolute inset-0 bg-cyan-900/20 group-hover:bg-cyan-400/10 transition-colors" />
                   <div className="relative flex items-center justify-center gap-3 text-xl font-bold text-white group-hover:text-cyan-300">
-                      <Play className="fill-current" /> START MISSION
+                      <Play className="fill-current" /> LAUNCH MK-V
                   </div>
               </button>
 
@@ -94,7 +96,7 @@ const App: React.FC = () => {
               >
                   <div className="absolute inset-0 bg-slate-800/50 group-hover:bg-white/5 transition-colors" />
                   <div className="relative flex items-center justify-center gap-3 text-xl font-bold text-slate-300 group-hover:text-white">
-                      <FileText /> BRIEFING
+                      <FileText /> MISSION INTEL
                   </div>
               </button>
           </div>
@@ -127,30 +129,29 @@ const App: React.FC = () => {
 
           <div className="grid md:grid-cols-2 gap-8 text-slate-300">
              <div className="space-y-6">
-                 <h3 className="text-white font-bold uppercase tracking-widest text-sm border-b border-slate-700 pb-2">Controls</h3>
+                 <h3 className="text-white font-bold uppercase tracking-widest text-sm border-b border-slate-700 pb-2">Situation</h3>
+                 <p className="text-sm">
+                    Santa is on his route. But the K.R.A.M.P.U.S. Virus is tracking him.
+                 </p>
+                 <p className="text-sm">
+                    You are <strong>Komet</strong>. You have stolen the experimental MK-V Sled. Your job is to dive into the digital network and destroy the virus from the inside.
+                 </p>
+             </div>
+
+             <div className="space-y-6">
+                 <h3 className="text-white font-bold uppercase tracking-widest text-sm border-b border-slate-700 pb-2">MK-V Controls</h3>
                  <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-lg bg-slate-800 border border-slate-600 flex items-center justify-center font-bold text-xl shadow-inner">␣</div>
                     <div>
-                        <div className="text-white font-bold">JUMP / FLY</div>
-                        <div className="text-xs text-slate-500">Hold to thrust upwards</div>
+                        <div className="text-white font-bold">HOVER JUMP</div>
                     </div>
                  </div>
                  <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-lg bg-slate-800 border border-slate-600 flex items-center justify-center font-bold text-xl shadow-inner">Z</div>
                     <div>
-                        <div className="text-white font-bold">FIRE PLASMA</div>
-                        <div className="text-xs text-slate-500">Clear obstacles</div>
+                        <div className="text-white font-bold">PLASMA BOLT</div>
                     </div>
                  </div>
-             </div>
-
-             <div className="space-y-6">
-                 <h3 className="text-white font-bold uppercase tracking-widest text-sm border-b border-slate-700 pb-2">Objectives</h3>
-                 <ul className="space-y-4 text-sm">
-                     <li className="flex gap-3"><span className="text-yellow-400">★</span> Dodge Cyber-Pipes and Drones.</li>
-                     <li className="flex gap-3"><span className="text-cyan-400">★</span> Collect Data Packets (Letters).</li>
-                     <li className="flex gap-3"><span className="text-pink-400">★</span> Reach the Core to reboot Christmas.</li>
-                 </ul>
              </div>
           </div>
 
@@ -166,10 +167,10 @@ const App: React.FC = () => {
           
           {gameState === GameState.GAME_OVER && (
             <div className="absolute inset-0 bg-black/90 z-50 flex flex-col items-center justify-center backdrop-blur-sm animate-fade-in-up">
-              <h2 className="text-6xl md:text-8xl font-black text-red-500 tracking-widest mb-2 font-christmas drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]">SYSTEM FAILURE</h2>
-              <p className="text-slate-400 mb-8 font-mono tracking-widest uppercase">Signal Lost</p>
+              <h2 className="text-6xl md:text-8xl font-black text-red-500 tracking-widest mb-2 font-christmas drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]">SIGNAL LOST</h2>
+              <p className="text-slate-400 mb-8 font-mono tracking-widest uppercase">Komet Ejected.</p>
               <button onClick={restartGame} className="px-10 py-4 bg-white text-black font-black hover:bg-cyan-400 hover:text-white rounded-full transition-all hover:scale-105 shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-                  REBOOT SYSTEM
+                  RETRY CONNECTION
               </button>
             </div>
           )}

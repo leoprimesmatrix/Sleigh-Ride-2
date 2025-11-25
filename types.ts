@@ -1,4 +1,3 @@
-
 export enum GameState {
   MENU,
   HELP,
@@ -42,13 +41,11 @@ export interface Player extends Entity {
 }
 
 export interface Obstacle extends Entity {
-  // New Sci-Fi Types
   type: 'PIPE' | 'DRONE' | 'TRAP' | 'TOWER' | 'DATA_BLOCK';
   rotation?: number; 
 }
 
 export interface Landmark extends Entity {
-  // New Landmarks
   type: 'FACTORY_GATE' | 'SMOG_EMITTER' | 'SERVER_TOWER' | 'CORE_REACTOR' | 'MAIN_HUB';
   name: string;
 }
@@ -113,6 +110,6 @@ export interface BackgroundLayer {
 
 export interface DialogueLine {
   id: string;
-  speaker: 'Santa' | 'Rudolph' | 'KRAMPUS_AI';
+  speaker: 'KOMET' | 'VIXEN' | 'KRAMPUS_AI';
   text: string;
 }
