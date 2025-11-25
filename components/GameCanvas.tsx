@@ -112,20 +112,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (gameState === GameState.MENU) soundManager.init();
       if (gameState !== GameState.PLAYING) return;
       
-      if ((e.code === 'Space' || e.code === 'ArrowUp') && !isEndingSequenceRef.current) {
-        playerRef.current.vy = JUMP_STRENGTH;
-        soundManager.playJump();
-        createParticles(playerRef.current.x, playerRef.current.y + 30, ParticleType.FIRE, 8, '#22d3ee'); // Cyan thrust
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault(); // FIX: Prevent scrolling
+        if (!isEndingSequenceRef.current) {
+            playerRef.current.vy = JUMP_STRENGTH;
+            soundManager.playJump();
+            createParticles(playerRef.current.x, playerRef.current.y + 30, ParticleType.FIRE, 8, '#22d3ee'); 
+        }
       }
 
-      if ((e.code === 'KeyZ' || e.code === 'Enter') && !isEndingSequenceRef.current) {
-        shootProjectile();
+      if (e.code === 'KeyZ' || e.code === 'Enter') {
+        e.preventDefault();
+        if (!isEndingSequenceRef.current) {
+            shootProjectile();
+        }
       }
     };
     
-    const handleTouch = () => {
+    const handleTouch = (e: TouchEvent) => {
+       // Prevent default only if playing to avoid blocking UI touches if we had any
        if (gameState === GameState.MENU) soundManager.init();
        if (gameState === GameState.PLAYING && !isEndingSequenceRef.current) {
+          // e.preventDefault(); // Sometimes needed for mobile, but can block buttons
           playerRef.current.vy = JUMP_STRENGTH;
           soundManager.playJump();
           createParticles(playerRef.current.x, playerRef.current.y + 30, ParticleType.FIRE, 8, '#22d3ee');
@@ -604,30 +612,44 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (p.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) { ctx.restore(); return; }
       
       // Sleigh 2.0 - Sleek, Aerodynamic, Dark with Neon Trim
-      ctx.shadowColor = "#f43f5e"; ctx.shadowBlur = 15;
+      ctx.shadowColor = "#ef4444"; ctx.shadowBlur = 15;
       
-      // Body
-      ctx.fillStyle = "#be123c"; // Dark Red
+      // Main Body (Cyber-Red)
+      ctx.fillStyle = "#dc2626"; 
       ctx.beginPath();
-      ctx.moveTo(-40, 10); // Back bottom
-      ctx.lineTo(30, 10); // Front bottom
-      ctx.lineTo(40, -5); // Nose
-      ctx.lineTo(10, -15); // Windshield top
-      ctx.lineTo(-30, -15); // Back top
+      // Futuristic wedge shape
+      ctx.moveTo(40, 0);
+      ctx.lineTo(-30, 15);
+      ctx.lineTo(-40, -5);
+      ctx.lineTo(-20, -20);
+      ctx.lineTo(20, -15);
+      ctx.closePath();
       ctx.fill();
 
-      // Neon Trim (The "Runner")
-      ctx.strokeStyle = "#f472b6"; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(-35, 15); ctx.lineTo(35, 15); ctx.stroke();
+      // Neon Runner
+      ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 4; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-30, 25); ctx.lineTo(30, 20); ctx.stroke();
+      
+      // Connector struts
+      ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
+      ctx.beginPath(); 
+      ctx.moveTo(-20, 10); ctx.lineTo(-20, 25);
+      ctx.moveTo(10, 5); ctx.lineTo(10, 22);
+      ctx.stroke();
 
       // Engine Glow (Back)
-      ctx.fillStyle = "#22d3ee"; ctx.shadowColor = "#22d3ee";
-      ctx.fillRect(-42, -5, 5, 15);
+      ctx.fillStyle = "#22d3ee"; ctx.shadowColor = "#22d3ee"; ctx.shadowBlur = 20;
+      ctx.fillRect(-45, -5, 5, 10);
 
       // Santa (Holographic Visor)
       ctx.shadowBlur = 0;
-      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -20, 12, 0, Math.PI*2); ctx.fill(); // Head
-      ctx.fillStyle = "#22d3ee"; ctx.fillRect(2, -24, 10, 6); // Visor
+      // Face
+      ctx.fillStyle = "#fecaca"; ctx.beginPath(); ctx.arc(0, -20, 12, 0, Math.PI*2); ctx.fill(); 
+      // Hat
+      ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.moveTo(-12, -24); ctx.lineTo(12, -24); ctx.lineTo(0, -40); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, -40, 4, 0, Math.PI*2); ctx.fill(); // Pom pom
+      // Cyber Visor
+      ctx.fillStyle = "#22d3ee"; ctx.fillRect(2, -24, 10, 4);
 
       ctx.restore();
   };
@@ -649,11 +671,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           ctx.shadowColor = "#f43f5e"; ctx.shadowBlur = 10;
           ctx.fillStyle = "#1e293b"; ctx.beginPath(); ctx.arc(o.width/2, o.height/2, 20, 0, Math.PI*2); ctx.fill();
           ctx.fillStyle = "#f43f5e"; ctx.beginPath(); ctx.arc(o.width/2, o.height/2, 8, 0, Math.PI*2); ctx.fill();
+          // Wings
+          ctx.strokeStyle = "#cbd5e1"; ctx.beginPath(); ctx.moveTo(0, o.height/2); ctx.lineTo(o.width, o.height/2); ctx.stroke();
       
       } else if (o.type === 'TOWER') {
           // "Firewall Turret"
           ctx.fillStyle = "#450a0a"; ctx.fillRect(0,0,o.width,o.height);
           ctx.fillStyle = "#ef4444"; ctx.fillRect(10, 10, 5, o.height-20);
+          ctx.shadowColor = "#ef4444"; ctx.shadowBlur = 10;
+          ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(o.width/2, 20, 5, 0, Math.PI*2); ctx.fill();
 
       } else { 
           // "Glitch Block"
@@ -672,9 +698,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       ctx.strokeStyle = color; ctx.lineWidth = 3;
       ctx.strokeRect(0,0,p.width,p.height);
       
-      ctx.fillStyle = color; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = "bold 20px monospace";
-      ctx.fillText(p.type === 'SPEED' ? '⚡' : (p.type === 'SNOWBALLS' ? '❄' : '+'), p.width/2, p.height/2);
+      // Inner fill
+      ctx.fillStyle = color; ctx.globalAlpha = 0.3; ctx.fillRect(0,0,p.width,p.height); ctx.globalAlpha = 1;
+
+      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "20px 'Segoe UI Emoji'";
+      const emoji = p.type === 'SPEED' ? '⚡' : (p.type === 'SNOWBALLS' ? '❄️' : (p.type === 'HEALING' ? '❤️' : (p.type === 'BLAST' ? '💥' : '➕')));
+      ctx.fillText(emoji, p.width/2, p.height/2 + 2);
       ctx.restore();
   };
 
@@ -684,6 +714,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       ctx.fillStyle = l.isGolden ? "#facc15" : "#22d3ee";
       ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 15;
       ctx.beginPath(); ctx.moveTo(0,10); ctx.lineTo(15,0); ctx.lineTo(30,10); ctx.lineTo(15,20); ctx.fill();
+      // Icon
+      ctx.fillStyle = "#000"; ctx.font = "12px monospace"; ctx.fillText("✉", 12, 14);
       ctx.restore();
   };
 
