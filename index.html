@@ -4,98 +4,156 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sleigh Ride Adventure</title>
+  <title>Sleigh Ride 2: Brave New World</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Nunito:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+    
     body {
-      font-family: 'Nunito', sans-serif;
-      background-color: #0f172a;
-      color: white;
+      font-family: 'Share Tech Mono', monospace;
+      background-color: #000;
+      color: #e2e8f0;
       overflow: hidden;
     }
-    .font-christmas {
-      font-family: 'Mountains of Christmas', cursive;
-    }
-    /* Tailwind animations */
-    @keyframes pulse-slow {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.8; }
-    }
-    .animate-pulse-slow {
-      animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    @keyframes spin-slow {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .animate-spin-slow {
-      animation: spin-slow 3s linear infinite;
-    }
-    @keyframes bounce-slow {
-      0%, 100% { transform: translateY(-5%); }
-      50% { transform: translateY(0); }
-    }
-    .animate-bounce-slow {
-      animation: bounce-slow 3s infinite ease-in-out;
+
+    /* Glitch Effect */
+    .glitch-wrapper {
+      position: relative;
     }
     
-    /* Logo Lights Animation */
-    @keyframes christmas-lights {
-      0% { filter: hue-rotate(0deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
-      25% { filter: hue-rotate(90deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
-      50% { filter: hue-rotate(180deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
-      75% { filter: hue-rotate(270deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
-      100% { filter: hue-rotate(360deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
-    }
-    .animate-christmas-lights {
-      animation: christmas-lights 4s linear infinite;
+    .glitch {
+      position: relative;
+      color: white;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 0.1em;
     }
 
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+
+    .glitch::before {
+      left: 2px;
+      text-shadow: -1px 0 #ff00c1;
+      clip: rect(44px, 450px, 56px, 0);
+      animation: glitch-anim 5s infinite linear alternate-reverse;
+    }
+
+    .glitch::after {
+      left: -2px;
+      text-shadow: -1px 0 #00fff9;
+      clip: rect(44px, 450px, 56px, 0);
+      animation: glitch-anim2 5s infinite linear alternate-reverse;
+    }
+
+    @keyframes glitch-anim {
+      0% { clip: rect(38px, 9999px, 84px, 0); transform: skew(0.55deg); }
+      5% { clip: rect(66px, 9999px, 5px, 0); transform: skew(0.1deg); }
+      10% { clip: rect(25px, 9999px, 96px, 0); transform: skew(0.06deg); }
+      15% { clip: rect(6px, 9999px, 5px, 0); transform: skew(0.53deg); }
+      20% { clip: rect(69px, 9999px, 57px, 0); transform: skew(0.72deg); }
+      25% { clip: rect(58px, 9999px, 90px, 0); transform: skew(0.79deg); }
+      30% { clip: rect(32px, 9999px, 1px, 0); transform: skew(0.12deg); }
+      35% { clip: rect(10px, 9999px, 83px, 0); transform: skew(0.78deg); }
+      40% { clip: rect(40px, 9999px, 5px, 0); transform: skew(0.25deg); }
+      45% { clip: rect(33px, 9999px, 60px, 0); transform: skew(0.22deg); }
+      50% { clip: rect(21px, 9999px, 18px, 0); transform: skew(0.97deg); }
+      55% { clip: rect(78px, 9999px, 31px, 0); transform: skew(0.48deg); }
+      60% { clip: rect(43px, 9999px, 35px, 0); transform: skew(0.24deg); }
+      65% { clip: rect(38px, 9999px, 16px, 0); transform: skew(0.79deg); }
+      70% { clip: rect(59px, 9999px, 20px, 0); transform: skew(0.79deg); }
+      75% { clip: rect(6px, 9999px, 30px, 0); transform: skew(0.44deg); }
+      80% { clip: rect(59px, 9999px, 7px, 0); transform: skew(0.74deg); }
+      85% { clip: rect(98px, 9999px, 96px, 0); transform: skew(0.35deg); }
+      90% { clip: rect(12px, 9999px, 4px, 0); transform: skew(0.67deg); }
+      95% { clip: rect(65px, 9999px, 2px, 0); transform: skew(0.66deg); }
+      100% { clip: rect(47px, 9999px, 75px, 0); transform: skew(0.72deg); }
+    }
+
+    @keyframes glitch-anim2 {
+      0% { clip: rect(65px, 9999px, 100px, 0); transform: skew(0.78deg); }
+      5% { clip: rect(52px, 9999px, 74px, 0); transform: skew(0.21deg); }
+      10% { clip: rect(79px, 9999px, 85px, 0); transform: skew(0.11deg); }
+      15% { clip: rect(75px, 9999px, 5px, 0); transform: skew(0.05deg); }
+      20% { clip: rect(67px, 9999px, 61px, 0); transform: skew(0.81deg); }
+      25% { clip: rect(14px, 9999px, 79px, 0); transform: skew(0.71deg); }
+      30% { clip: rect(1px, 9999px, 66px, 0); transform: skew(0.85deg); }
+      35% { clip: rect(86px, 9999px, 30px, 0); transform: skew(0.92deg); }
+      40% { clip: rect(23px, 9999px, 98px, 0); transform: skew(0.72deg); }
+      45% { clip: rect(85px, 9999px, 72px, 0); transform: skew(0.93deg); }
+      50% { clip: rect(71px, 9999px, 97px, 0); transform: skew(0.14deg); }
+      55% { clip: rect(2px, 9999px, 48px, 0); transform: skew(0.97deg); }
+      60% { clip: rect(30px, 9999px, 5px, 0); transform: skew(0.04deg); }
+      65% { clip: rect(59px, 9999px, 32px, 0); transform: skew(0.05deg); }
+      70% { clip: rect(5px, 9999px, 20px, 0); transform: skew(0.03deg); }
+      75% { clip: rect(74px, 9999px, 69px, 0); transform: skew(0.72deg); }
+      80% { clip: rect(77px, 9999px, 14px, 0); transform: skew(0.76deg); }
+      85% { clip: rect(52px, 9999px, 4px, 0); transform: skew(0.64deg); }
+      90% { clip: rect(30px, 9999px, 23px, 0); transform: skew(0.43deg); }
+      95% { clip: rect(39px, 9999px, 89px, 0); transform: skew(0.76deg); }
+      100% { clip: rect(57px, 9999px, 9px, 0); transform: skew(0.8deg); }
+    }
+
+    /* CRT Scanline */
+    .scanlines {
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(0,0,0,0.2) 50%,
+        rgba(0,0,0,0.2)
+      );
+      background-size: 100% 4px;
+      animation: scroll 10s linear infinite;
+      pointer-events: none;
+      z-index: 50;
     }
     
-    /* Powerup Popup Animation */
-    @keyframes powerup-pop {
-      0% { opacity: 0; transform: scale(0.5) translateY(50px); }
-      20% { opacity: 1; transform: scale(1.5) translateY(0); }
-      40% { transform: scale(1.2) translateY(-10px); }
-      80% { opacity: 1; transform: scale(1.2) translateY(-30px); }
-      100% { opacity: 0; transform: scale(0.8) translateY(-60px); }
-    }
-    .animate-powerup-pop {
-      animation: powerup-pop 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    @keyframes scroll {
+      0% { background-position: 0 0; }
+      100% { background-position: 0 100%; }
     }
 
-    /* UI Entrance Animations */
-    @keyframes slide-up {
-      from { transform: translateY(100%); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    .animate-slide-up {
-      animation: slide-up 0.5s ease-out forwards;
-    }
-
-    @keyframes slide-in-right {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    .animate-slide-in-right {
-      animation: slide-in-right 0.5s ease-out forwards;
+    /* Hologram Grid */
+    .holo-grid {
+      background-image: 
+        linear-gradient(rgba(14, 165, 233, 0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14, 165, 233, 0.2) 1px, transparent 1px);
+      background-size: 40px 40px;
+      perspective: 500px;
+      transform-style: preserve-3d;
+      animation: grid-move 20s linear infinite;
     }
 
-    @keyframes fade-in-up {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fade-in-up {
-      animation: fade-in-up 0.5s ease-out forwards;
+    @keyframes grid-move {
+      0% { background-position: 0 0; }
+      100% { background-position: 40px 40px; }
     }
     
-    /* Loading Screen Styles */
+    /* Loading Bar Striped */
+    .progress-striped {
+      background-image: linear-gradient(
+        45deg,
+        rgba(0, 0, 0, 0.2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.2) 50%,
+        rgba(0, 0, 0, 0.2) 75%,
+        transparent 75%,
+        transparent
+      );
+      background-size: 20px 20px;
+    }
+
+    /* Loader Styles */
     #loader {
       position: fixed;
       inset: 0;
@@ -103,18 +161,19 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background-color: #0f172a;
+      background-color: #000;
       z-index: 9999;
       transition: opacity 0.5s;
     }
     .loader-spinner {
       width: 50px;
       height: 50px;
-      border: 5px solid #1e293b;
-      border-top: 5px solid #22c55e;
+      border: 3px solid #1e293b;
+      border-top: 3px solid #0ea5e9;
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin-bottom: 20px;
+      box-shadow: 0 0 15px #0ea5e9;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
@@ -134,43 +193,30 @@
 <body>
   <div id="root"></div>
   
-  <!-- Initial Loading Indicator -->
   <div id="loader">
     <div class="loader-spinner"></div>
-    <h2 class="font-christmas text-2xl text-white">Loading Game Resources...</h2>
-    <p id="loader-status" class="text-slate-400 text-sm mt-2 font-mono">Initializing...</p>
+    <h2 class="font-mono text-xl text-cyan-500 tracking-widest">INITIALIZING_SYSTEM</h2>
+    <p id="loader-status" class="text-slate-500 text-xs mt-2 font-mono">LOADING ASSETS...</p>
     <div id="error-container" class="hidden mt-4 p-4 bg-red-900/50 border border-red-500 rounded text-red-200 text-xs text-left max-w-md overflow-auto max-h-60 whitespace-pre-wrap font-mono"></div>
   </div>
 
   <script>
-    // Client-Side Module Loader for GitHub Pages
-    // Handles TSX compilation, relative path resolution, and GitHub Pages environment quirks.
-
     async function loadGame() {
       const status = document.getElementById('loader-status');
       const errorContainer = document.getElementById('error-container');
       
-      // 1. GitHub Pages Trailing Slash Fix
-      // If we are at /Sleigh-Ride (no slash), relative fetch('./types.ts') goes to parent dir.
-      // We must redirect to /Sleigh-Ride/
       const path = window.location.pathname;
       if (!path.endsWith('/') && !path.endsWith('.html')) {
-        status.innerText = "Redirecting to fix paths...";
         const newUrl = window.location.href.replace(path, path + '/');
         window.location.replace(newUrl);
         return; 
       }
 
       function showError(msg, details = "") {
-        status.innerText = "Error Loading Game";
+        status.innerText = "SYSTEM FAILURE";
         status.style.color = "#ef4444";
         errorContainer.classList.remove('hidden');
-        // Check if details is a link and auto-link it
-        const formattedDetails = details.replace(
-            /(https?:\/\/[^\s]+)/g, 
-            '<a href="$1" class="underline text-blue-300 hover:text-white" target="_blank">$1</a>'
-        );
-        errorContainer.innerHTML = `<strong>${msg}</strong><br/><br/>${formattedDetails}`;
+        errorContainer.innerHTML = `<strong>${msg}</strong><br/><br/>${details}`;
         document.querySelector('.loader-spinner').style.borderColor = '#ef4444';
         document.querySelector('.loader-spinner').style.borderTopColor = '#ef4444';
         document.querySelector('.loader-spinner').style.animation = 'none';
@@ -195,15 +241,12 @@
           if (res.ok) return await res.text();
           throw new Error(`HTTP ${res.status}`);
         } catch (err) {
-          // Fallback: Try capitalized filename (common git case sensitivity issue)
-          // e.g. ./types.ts -> ./Types.ts
           const parts = url.split('/');
           const filename = parts.pop();
           const capitalized = filename.charAt(0).toUpperCase() + filename.slice(1);
           const newUrl = [...parts, capitalized].join('/');
           
           if (newUrl !== url) {
-             console.warn(`Failed to fetch ${url}, retrying as ${newUrl}`);
              const retryRes = await fetch(newUrl);
              if (retryRes.ok) return await retryRes.text();
           }
@@ -212,27 +255,17 @@
       }
 
       try {
-        if (window.location.protocol === 'file:') {
-          throw new Error("CORS_ERROR");
-        }
+        if (window.location.protocol === 'file:') throw new Error("CORS_ERROR");
 
-        // 2. Fetch and Transpile Files
         for (const [moduleName, serverPath] of Object.entries(fileMap)) {
-          status.innerText = `Loading ${moduleName}...`;
+          status.innerText = `DECRYPTING ${moduleName}...`;
           
           try {
             let code = await fetchWithFallback(serverPath);
-            
-            // Regex to flatten imports: 
-            // matches: import ... from './components/GameCanvas.tsx' -> import ... from 'GameCanvas.tsx'
-            // Updated to be more permissive: matches any import ending in an extension, ignoring path prefixes.
             code = code.replace(/(from\s+['"])(?:.*\/)?([a-zA-Z0-9_-]+\.[a-zA-Z]+)(['"])/g, '$1$2$3');
 
             const result = Babel.transform(code, {
-              presets: [
-                ['react', { runtime: 'automatic' }],
-                'typescript'
-              ],
+              presets: [['react', { runtime: 'automatic' }], 'typescript'],
               filename: moduleName,
             });
 
@@ -240,17 +273,12 @@
             blobUrls[moduleName] = URL.createObjectURL(blob);
 
           } catch (fetchErr) {
-            console.error(`Failed to load ${moduleName}:`, fetchErr);
-            if (fetchErr.message === 'CORS_ERROR' || fetchErr.message.includes('Failed to fetch')) {
-               // Obfuscate the actual error for the user to prevent debugging local runs
-               throw new Error("CORS_ERROR");
-            }
-            throw new Error(`Error loading ${moduleName}: ${fetchErr.message}`);
+            console.error(fetchErr);
+            if (fetchErr.message === 'CORS_ERROR') throw new Error("CORS RESTRICTION DETECTED");
+            throw new Error(`LOAD ERROR ${moduleName}: ${fetchErr.message}`);
           }
         }
 
-        // 3. Link Modules
-        status.innerText = "Linking modules...";
         const existingMapEl = document.querySelector('script[type="importmap"]');
         const imports = existingMapEl ? JSON.parse(existingMapEl.textContent).imports : {};
 
@@ -263,8 +291,7 @@
         mapEl.textContent = JSON.stringify({ imports });
         document.head.appendChild(mapEl);
 
-        // 4. Launch
-        status.innerText = "Starting...";
+        status.innerText = "EXECUTING...";
         await import(blobUrls['index.tsx']);
         
         const loader = document.getElementById('loader');
@@ -272,13 +299,7 @@
         setTimeout(() => loader.remove(), 500);
 
       } catch (error) {
-        console.error(error);
-        if (error.message === 'CORS_ERROR') {
-            showError("Access Restricted", 
-                "Failed to connect to game servers or verify integrity.\n\nPlease play the official version at:\nhttps://leoprimesmatrix.github.io/Sleigh-Ride/");
-        } else {
-            showError("Game Initialization Failed", error.message);
-        }
+        showError("CRITICAL ERROR", error.message);
       }
     }
 
