@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 interface VictorySequenceProps {
   onRestart: () => void;
@@ -9,43 +10,48 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
   const [stage, setStage] = useState(0);
 
   useEffect(() => {
-    // Cinematic Timeline
-    setTimeout(() => setStage(1), 2000); 
-    setTimeout(() => setStage(2), 6000); 
-    setTimeout(() => setStage(3), 10000); 
-    setTimeout(() => setStage(4), 15000);
+    // Cinematic Timing
+    setTimeout(() => setStage(1), 2000); // Machine Spin
+    setTimeout(() => setStage(2), 5000); // White Out
+    setTimeout(() => setStage(3), 8000); // Black Screen Text
+    setTimeout(() => setStage(4), 12000); // Credits
   }, []);
 
   return (
-    <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center overflow-hidden text-white font-serif">
+    <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center overflow-hidden font-mono text-white">
       
-      {/* Stage 1: The Machine Activates */}
-      <div className={`transition-opacity duration-2000 ${stage === 1 ? 'opacity-100' : 'opacity-0'} text-center`}>
-          <div className="text-6xl text-white mb-4 animate-pulse">⚙</div>
-          <p className="text-slate-400 tracking-[0.5em] text-sm uppercase">Temporal Engine Online</p>
-      </div>
-
-      {/* Stage 2: Destination */}
-      {stage >= 2 && stage < 4 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white transition-opacity duration-[3000ms] animate-[pulse_0.2s_infinite]">
-             <h1 className="text-black text-9xl font-bold font-mono">YEAR 0001</h1>
+      {/* Stage 0-1: The Machine Visual */}
+      {stage < 2 && (
+          <div className="relative flex items-center justify-center animate-pulse">
+             <div className="absolute w-[500px] h-[500px] border-4 border-cyan-500 rounded-full animate-[spin-slow_10s_linear_infinite] opacity-50"></div>
+             <div className="absolute w-[300px] h-[300px] border-4 border-white rounded-full animate-[spin_4s_linear_infinite_reverse]"></div>
+             <div className="text-center z-10">
+                 <Clock size={64} className="mx-auto mb-4 text-cyan-400" />
+                 <h1 className="text-2xl tracking-[0.5em] text-cyan-200 uppercase">Chronos Engine</h1>
+                 <p className="text-xs text-cyan-600 mt-2">TARGET DATE: 0001 AD</p>
+             </div>
           </div>
       )}
 
-      {/* Stage 3: Fade to Black & Cliffhanger */}
+      {/* Stage 2: White Flash */}
+      <div className={`absolute inset-0 bg-white transition-opacity duration-[2000ms] pointer-events-none ${stage === 2 ? 'opacity-100' : 'opacity-0'}`} />
+
+      {/* Stage 3-4: The Reveal */}
       <div className={`absolute inset-0 bg-black flex flex-col items-center justify-center transition-opacity duration-1000 ${stage >= 3 ? 'opacity-100' : 'opacity-0'}`}>
-          <p className="text-2xl text-slate-300 italic mb-8">
-              "To save the future... I must build the legend."
+          <p className="text-xl text-slate-400 italic mb-8 max-w-lg text-center leading-relaxed">
+              "History is gone. So I will rewrite it."
           </p>
+          
           {stage >= 4 && (
-            <div className="mt-12 text-center animate-fade-in-up">
-                <h1 className="text-4xl text-yellow-500 font-christmas mb-2">The Cycle Begins</h1>
-                <p className="text-slate-600 text-sm mb-8">Sleigh Ride 1 Prequel Setup Complete.</p>
+            <div className="mt-8 text-center animate-fade-in-up">
+                <h1 className="text-5xl font-bold text-white mb-2">YEAR 0</h1>
+                <p className="text-slate-600 text-sm mb-12 uppercase tracking-widest">The Cycle Begins</p>
+                
                 <button 
                     onClick={onRestart}
-                    className="text-slate-400 hover:text-white border-b border-transparent hover:border-white pb-1 transition-all uppercase tracking-widest text-xs"
+                    className="text-cyan-500 hover:text-white border-b border-cyan-500 hover:border-white pb-1 transition-all uppercase tracking-widest text-xs"
                 >
-                    Return to Menu
+                    System Reset
                 </button>
             </div>
           )}

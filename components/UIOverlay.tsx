@@ -1,162 +1,113 @@
-import React, { useEffect, useState } from 'react';
-import { Flame, Star, BookOpen, Clock, Activity, Zap, Plus, Heart } from 'lucide-react';
-import { Player, PowerupType, DialogueLine } from '../types.ts';
-import { POWERUP_COLORS } from '../constants.ts';
+
+import React from 'react';
+import { Battery, Zap, Shield, AlertTriangle, Database, Activity } from 'lucide-react';
+import { DialogueLine } from '../types.ts';
 
 interface UIOverlayProps {
-  lives: number;
-  snowballs: number;
+  integrity: number;
+  energy: number;
   progress: number;
   timeLeft: number;
-  activePowerups: Player['speedTimer'] | Player['healingTimer'];
   currentLevelName: string;
+  currentLevelSub: string;
   score: number;
-  collectedPowerups: { id: number; type: PowerupType }[];
   activeDialogue: DialogueLine | null;
-  activeWish: string | null;
+  activeLog: string | null;
+  isShielded: boolean;
 }
 
 const UIOverlay: React.FC<UIOverlayProps> = ({
-  lives,
-  snowballs,
-  progress,
-  timeLeft,
-  currentLevelName,
-  score,
-  collectedPowerups,
-  activeDialogue,
-  activeWish
+  integrity, energy, progress, timeLeft, currentLevelName, currentLevelSub,
+  score, activeDialogue, activeLog, isShielded
 }) => {
   
-  const [popups, setPopups] = useState<{id: number, type: PowerupType}[]>([]);
-
-  useEffect(() => {
-    if (collectedPowerups.length > 0) {
-      setPopups(prev => [...prev, ...collectedPowerups]);
-    }
-  }, [collectedPowerups]);
-
-  const handleAnimationEnd = (id: number) => {
-    setPopups(prev => prev.filter(p => p.id !== id));
-  };
-
-  const getPowerupConfig = (type: PowerupType) => {
-      switch (type) {
-          case PowerupType.SPEED: return { icon: Zap, label: "WIND", color: POWERUP_COLORS[type] };
-          case PowerupType.SNOWBALLS: return { icon: Star, label: "SPIRIT", color: POWERUP_COLORS[type] };
-          case PowerupType.BLAST: return { icon: Activity, label: "ECHO", color: POWERUP_COLORS[type] };
-          case PowerupType.HEALING: return { icon: Plus, label: "MEND", color: POWERUP_COLORS[type] };
-          case PowerupType.LIFE: return { icon: Heart, label: "RESOLVE", color: POWERUP_COLORS[type] };
-          default: return { icon: Zap, label: "BOOST", color: "#fff" };
-      }
-  };
-  
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  const formatTime = (s: number) => {
+      const m = Math.floor(s/60); const sc = Math.floor(s%60);
+      return `${m < 10 ? '0'+m : m}:${sc < 10 ? '0'+sc : sc}`;
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col justify-between p-6 pointer-events-none z-20 font-mono tracking-wide text-slate-300">
+    <div className="absolute inset-0 flex flex-col justify-between p-6 z-20 font-mono text-cyan-400 select-none">
       
-      {/* Popups (Centered) */}
-      <div className="absolute inset-0 flex items-center justify-center overflow-hidden z-20">
-        {popups.map(p => {
-            const { icon: Icon, label, color } = getPowerupConfig(p.type);
-            return (
-                <div 
-                    key={p.id} 
-                    className="absolute animate-powerup-pop flex flex-col items-center justify-center"
-                    onAnimationEnd={() => handleAnimationEnd(p.id)}
-                >
-                    <span className="font-bold text-3xl uppercase tracking-widest drop-shadow-md" style={{ color: color }}>{label}</span>
+      {/* Top HUD */}
+      <div className="flex justify-between items-start w-full border-b border-cyan-900/50 pb-2 bg-gradient-to-b from-black/80 to-transparent backdrop-blur-sm">
+         
+         {/* Left: Vital Systems */}
+         <div className="flex flex-col gap-2 w-64">
+            {/* Hull Integrity */}
+            <div className="flex items-center gap-2">
+                <Activity size={16} className={integrity < 30 ? "text-red-500 animate-pulse" : "text-green-400"} />
+                <div className="w-full h-2 bg-slate-800 rounded-sm overflow-hidden border border-slate-700">
+                    <div className={`h-full transition-all duration-300 ${integrity < 30 ? "bg-red-500" : "bg-green-500"}`} style={{width: `${integrity}%`}} />
                 </div>
-            );
-        })}
-      </div>
-
-      {/* Artifact Found */}
-      {activeWish && (
-          <div className="absolute top-28 right-8 flex flex-col items-end animate-slide-in-right z-30">
-             <div className="bg-slate-900/90 border border-slate-600 p-4 shadow-xl max-w-sm">
-                 <div className="text-[10px] font-bold text-yellow-500 uppercase mb-1 flex items-center gap-2">
-                    <BookOpen size={12}/> ARCHIVE ENTRY
-                 </div>
-                 <p className="text-white text-sm italic serif">"{activeWish}"</p>
-             </div>
-          </div>
-      )}
-
-      {/* Dialogue Box */}
-      {activeDialogue && (
-          <div className="absolute bottom-20 left-0 right-0 flex justify-center animate-fade-in-up z-20">
-             <div className="bg-black/80 border-t border-b border-slate-500 px-8 py-6 max-w-3xl text-center relative backdrop-blur-md">
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">
-                    {activeDialogue.speaker}
-                </div>
-                <p className="text-xl font-serif text-slate-200 italic">
-                    "{activeDialogue.text}"
-                </p>
-             </div>
-          </div>
-      )}
-
-      {/* Top HUD Bar */}
-      <div className="flex items-start justify-between w-full z-10 border-b border-slate-800 pb-4 bg-gradient-to-b from-black/50 to-transparent">
-        
-        {/* Left: Resolve (Lives) */}
-        <div className="flex gap-8">
-          <div className="flex flex-col gap-1">
-             <span className="text-[10px] uppercase text-slate-600 tracking-widest">Resolve</span>
-             <div className="flex gap-2">
-                {[1, 2, 3].map((i) => (
-                    <Flame 
-                        key={i} 
-                        size={24} 
-                        className={`${i <= lives ? 'fill-orange-500 text-orange-500' : 'text-slate-800'}`} 
-                    />
-                ))}
-             </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-             <span className="text-[10px] uppercase text-slate-600 tracking-widest">Spirit</span>
-             <div className="flex items-center gap-2">
-                <Star size={20} className="fill-blue-400 text-blue-400" />
-                <span className="text-xl font-bold text-white tabular-nums">{snowballs}</span>
-             </div>
-          </div>
-        </div>
-
-        {/* Center: Chronometer */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-4 flex flex-col items-center">
-            <Clock size={16} className="text-slate-500 mb-1" />
-            <div className={`text-3xl font-bold tabular-nums tracking-widest ${timeLeft < 30 ? 'text-red-900' : 'text-slate-200'}`}>
-                {formatTime(timeLeft)}
+                <span className="text-xs">HULL</span>
             </div>
-        </div>
 
-        {/* Right: Archive % */}
-        <div className="text-right flex flex-col gap-1">
-             <span className="text-[10px] uppercase text-slate-600 tracking-widest">Knowledge</span>
-             <div className="text-xl font-bold text-yellow-500 tabular-nums">
-                {Math.floor(score / 100)}%
+            {/* Energy */}
+            <div className="flex items-center gap-2">
+                <Zap size={16} className={energy < 20 ? "text-yellow-500" : "text-cyan-400"} />
+                <div className="w-full h-2 bg-slate-800 rounded-sm overflow-hidden border border-slate-700">
+                    <div className="h-full bg-cyan-400 transition-all duration-100" style={{width: `${energy}%`}} />
+                </div>
+                <span className="text-xs">PWR</span>
+            </div>
+         </div>
+
+         {/* Center: Timer & Status */}
+         <div className="flex flex-col items-center">
+             <div className="text-3xl font-bold tracking-widest text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">
+                 {formatTime(timeLeft)}
              </div>
-        </div>
+             {isShielded && <div className="text-xs text-purple-400 border border-purple-500 px-2 rounded animate-pulse">SHIELD ACTIVE</div>}
+         </div>
+
+         {/* Right: Score */}
+         <div className="text-right">
+             <div className="text-xs text-slate-500 tracking-widest">ARCHIVE_DATA</div>
+             <div className="text-xl text-yellow-500 font-bold">{score.toFixed(0)}</div>
+         </div>
       </div>
 
-      {/* Bottom: Progress */}
-      <div className="w-full h-[2px] bg-slate-900 fixed bottom-0 left-0">
-          <div 
-             className="h-full bg-slate-400" 
-             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} 
-          />
-      </div>
-      
-      {/* Biome Name */}
-      <div className="absolute bottom-4 left-4 text-xs font-serif italic text-slate-600">
-          Region: {currentLevelName}
+      {/* Central Notifications */}
+      {activeLog && (
+          <div className="absolute top-24 right-10 animate-slide-in-right">
+              <div className="bg-slate-900/90 border-l-4 border-yellow-500 p-4 max-w-sm shadow-lg backdrop-blur">
+                  <div className="flex items-center gap-2 text-yellow-500 text-xs font-bold mb-1">
+                      <Database size={12}/> DECRYPTED LOG
+                  </div>
+                  <p className="text-sm text-slate-300 italic">"{activeLog}"</p>
+              </div>
+          </div>
+      )}
+
+      {/* Bottom Dialogue (Terminal Style) */}
+      {activeDialogue && (
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-full max-w-2xl">
+              <div className="bg-black/80 border border-cyan-800 p-4 rounded-sm shadow-[0_0_15px_rgba(8,145,178,0.2)]">
+                  <div className="text-xs text-cyan-600 font-bold mb-1 tracking-widest uppercase flex items-center gap-2">
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"/>
+                      {activeDialogue.speaker} CHANNEL
+                  </div>
+                  <p className="text-lg text-cyan-100 font-mono leading-relaxed typing-effect">
+                      {activeDialogue.text}
+                  </p>
+              </div>
+          </div>
+      )}
+
+      {/* Bottom Status Bar */}
+      <div className="flex justify-between items-end text-xs text-slate-500 uppercase tracking-widest">
+          <div>
+              <div className="text-white font-bold text-sm">{currentLevelName}</div>
+              <div className="text-cyan-700">{currentLevelSub}</div>
+          </div>
+          
+          <div className="flex flex-col items-end gap-1 w-1/3">
+              <span>Mission Progress</span>
+              <div className="w-full h-1 bg-slate-800">
+                  <div className="h-full bg-white transition-all duration-500" style={{width: `${Math.min(100, progress)}%`}} />
+              </div>
+          </div>
       </div>
 
     </div>

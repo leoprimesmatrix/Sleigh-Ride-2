@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { 
-  GameState, Player, Obstacle, Powerup, Letter, Projectile, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark
+  GameState, Player, Obstacle, Powerup, DataLog, EMPBurst, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark
 } from '../types.ts';
 import { 
-  CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, JUMP_STRENGTH, LEVELS, LEVEL_THRESHOLDS, POWERUP_COLORS, TOTAL_GAME_TIME_SECONDS, VICTORY_DISTANCE, BASE_SPEED, ARTIFACTS, NARRATIVE_LETTERS, STORY_MOMENTS, LANDMARKS
+  CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, THRUST_POWER, MAX_FALL_SPEED, BASE_SPEED, 
+  LEVELS, LEVEL_THRESHOLDS, POWERUP_COLORS, TOTAL_GAME_TIME_SECONDS, VICTORY_DISTANCE, 
+  EMP_COST, EMP_RADIUS, ENERGY_RECHARGE_RATE,
+  DATA_LOGS, NARRATIVE_FRAGMENTS, STORY_MOMENTS, LANDMARKS
 } from '../constants.ts';
 import UIOverlay from './UIOverlay.tsx';
 import { soundManager } from '../audio.ts';
@@ -18,692 +21,531 @@ interface GameCanvasProps {
 const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin, gameMode }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Debug & Modes
-  const [cinematicMode, setCinematicMode] = useState(false);
-
   // Entities
   const playerRef = useRef<Player>({
-    id: 0, x: 150, y: 300, width: 90, height: 40, markedForDeletion: false,
-    vy: 0, lives: 3, snowballs: 0, isInvincible: false, invincibleTimer: 0,
-    healingTimer: 0, speedTimer: 0, angle: 0
+    id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false,
+    vy: 0, integrity: 100, energy: 100, maxEnergy: 100,
+    isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false
   });
   
   const obstaclesRef = useRef<Obstacle[]>([]);
   const powerupsRef = useRef<Powerup[]>([]);
-  const lettersRef = useRef<Letter[]>([]);
+  const logsRef = useRef<DataLog[]>([]);
   const landmarksRef = useRef<Landmark[]>([]);
-  const projectilesRef = useRef<Projectile[]>([]);
+  const empsRef = useRef<EMPBurst[]>([]); // New EMP system
   const particlesRef = useRef<Particle[]>([]);
   
   // Visuals
-  const starsRef = useRef<{x:number, y:number, size:number, speed:number}[]>([]); 
-  const bgStructuresRef = useRef<boolean[][]>([[], [], []]); 
-  
+  const starsRef = useRef<{x:number, y:number, size:number, opacity:number}[]>([]); 
+  const bgLayersRef = useRef<BackgroundLayer[]>([
+    { points: [], color: '', speedModifier: 0.2, offset: 0 }, 
+    { points: [], color: '', speedModifier: 0.5, offset: 0 }, 
+  ]);
+
   // Logic
-  const flashTimerRef = useRef(0); 
   const shakeRef = useRef(0);
   const isEndingSequenceRef = useRef(false);
-  const joyRideModeRef = useRef(false); 
-  const joyRideTimerRef = useRef(0);
-  const masterGiftDroppedRef = useRef(false);
+  const endingTimerRef = useRef(0);
   const endingMusicTriggeredRef = useRef(false);
 
-  // State
-  const collectedPowerupsRef = useRef<{ id: number; type: PowerupType }[]>([]);
+  // State Sync
   const activeDialogueRef = useRef<DialogueLine | null>(null);
-  const activeWishRef = useRef<string | null>(null);
-  const triggeredLandmarksRef = useRef<Set<string>>(new Set());
-  const triggeredLettersRef = useRef<Set<string>>(new Set());
-  const triggeredStoryMomentsRef = useRef<Set<string>>(new Set());
+  const activeLogRef = useRef<string | null>(null);
+  const triggeredEventsRef = useRef<Set<string>>(new Set());
   
   const distanceRef = useRef(0);
   const scoreRef = useRef(0);
   const timeRef = useRef(TOTAL_GAME_TIME_SECONDS);
   const lastFrameTimeRef = useRef(0);
   const lastLevelIndexRef = useRef(-1);
-  
-  // Parallax Layers
-  const bgLayersRef = useRef<BackgroundLayer[]>([
-    { points: [], color: '', speedModifier: 0.1, offset: 0 }, 
-    { points: [], color: '', speedModifier: 0.3, offset: 0 }, 
-    { points: [], color: '', speedModifier: 0.6, offset: 0 }, 
-  ]);
+  const pressedKeysRef = useRef<Set<string>>(new Set());
 
-  // Init
-  useEffect(() => {
-    // Generate Jagged, Ruined Terrain
-    const generateTerrain = (amplitude: number, frequency: number) => {
-        const points = [];
-        for (let i = 0; i <= CANVAS_WIDTH + 200; i += 20) {
-            points.push(Math.sin(i * frequency) * amplitude + (Math.random() * 5));
-        }
-        return points;
-    };
-
-    bgLayersRef.current[0].points = generateTerrain(150, 0.005); 
-    bgLayersRef.current[1].points = generateTerrain(80, 0.01);  
-    bgLayersRef.current[2].points = generateTerrain(30, 0.02);  
-
-    // Structures (Ruins)
-    bgStructuresRef.current[1] = bgLayersRef.current[1].points.map(() => Math.random() < 0.05); 
-    bgStructuresRef.current[2] = bgLayersRef.current[2].points.map(() => Math.random() < 0.03);
-
-    starsRef.current = [];
-    for (let i = 0; i < 40; i++) { 
-        starsRef.current.push({
-            x: Math.random() * CANVAS_WIDTH,
-            y: Math.random() * CANVAS_HEIGHT,
-            size: Math.random() * 2,
-            speed: Math.random() * 0.5 + 0.1
-        });
-    }
-  }, []);
-  
   const [hudState, setHudState] = useState({
-    lives: 3, snowballs: 0, progress: 0, timeLeft: TOTAL_GAME_TIME_SECONDS, levelIndex: 0, score: 0,
-    activeSpeed: 0, activeHealing: 0, collectedPowerups: [] as { id: number; type: PowerupType }[],
-    activeDialogue: null as DialogueLine | null, activeWish: null as string | null
+    integrity: 100, energy: 100, progress: 0, timeLeft: TOTAL_GAME_TIME_SECONDS, 
+    levelIndex: 0, score: 0,
+    activeDialogue: null as DialogueLine | null, activeLog: null as string | null,
+    isShielded: false
   });
 
-  // Controls
+  // --- Controls (Thrust & EMP) ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameState === GameState.MENU) soundManager.init();
-      if (gameState !== GameState.PLAYING) return;
+      pressedKeysRef.current.add(e.code);
       
-      if (e.code === 'Space' || e.code === 'ArrowUp') {
-        e.preventDefault(); 
-        if (!isEndingSequenceRef.current) {
-            playerRef.current.vy = JUMP_STRENGTH;
-            soundManager.playJump();
-            createParticles(playerRef.current.x, playerRef.current.y + 35, ParticleType.EMBER, 8, '#fbbf24'); 
-        }
-      }
-
-      if (e.code === 'KeyZ' || e.code === 'Enter') {
-        e.preventDefault();
-        if (!isEndingSequenceRef.current) {
-            shootProjectile();
-        }
+      if (gameState === GameState.PLAYING && (e.code === 'KeyZ' || e.code === 'Enter')) {
+        triggerEMP();
       }
     };
-    
-    const handleTouch = (e: TouchEvent) => {
+    const handleKeyUp = (e: KeyboardEvent) => {
+      pressedKeysRef.current.delete(e.code);
+    };
+    const handleTouchStart = (e: TouchEvent) => {
        if (gameState === GameState.MENU) soundManager.init();
-       if (gameState === GameState.PLAYING && !isEndingSequenceRef.current) {
-          playerRef.current.vy = JUMP_STRENGTH;
-          soundManager.playJump();
-          createParticles(playerRef.current.x, playerRef.current.y + 35, ParticleType.EMBER, 8, '#fbbf24');
-       }
+       // Simple Touch: Left side thrust, Right side EMP
+       const touchX = e.touches[0].clientX;
+       if (touchX < window.innerWidth / 2) pressedKeysRef.current.add('Space');
+       else triggerEMP();
+    };
+    const handleTouchEnd = () => {
+       pressedKeysRef.current.delete('Space');
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('touchstart', handleTouch);
-    return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('touchstart', handleTouch); };
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
+    return () => { 
+        window.removeEventListener('keydown', handleKeyDown); 
+        window.removeEventListener('keyup', handleKeyUp);
+        window.removeEventListener('touchstart', handleTouchStart);
+        window.removeEventListener('touchend', handleTouchEnd);
+    };
   }, [gameState]);
 
+  // EMP Mechanic
+  const triggerEMP = () => {
+      if (playerRef.current.energy >= EMP_COST) {
+          playerRef.current.energy -= EMP_COST;
+          soundManager.playEMP();
+          empsRef.current.push({
+              id: Date.now(), x: playerRef.current.x + 40, y: playerRef.current.y + 20,
+              radius: 10, maxRadius: EMP_RADIUS, markedForDeletion: false
+          });
+          shakeRef.current = 10;
+      } else {
+          soundManager.playLowEnergy();
+      }
+  };
+
+  // Init Terrain & Stars
   useEffect(() => {
-    soundManager.init(); soundManager.reset(); 
+    const genTerrain = (amp: number, freq: number) => {
+        const pts = [];
+        for (let i = 0; i <= CANVAS_WIDTH + 200; i += 40) pts.push(Math.sin(i * freq) * amp);
+        return pts;
+    };
+    bgLayersRef.current[0].points = genTerrain(100, 0.005);
+    bgLayersRef.current[1].points = genTerrain(50, 0.01);
+    
+    starsRef.current = [];
+    for(let i=0; i<60; i++) starsRef.current.push({ x: Math.random()*CANVAS_WIDTH, y: Math.random()*CANVAS_HEIGHT, size: Math.random()*2, opacity: Math.random() });
+    
+    soundManager.init(); soundManager.reset();
     return () => { soundManager.stopEndingMusic(); soundManager.stopBgm(); };
   }, []);
 
-  const shootProjectile = () => {
-    if (playerRef.current.snowballs > 0) {
-      playerRef.current.snowballs--;
-      soundManager.playShoot();
-      projectilesRef.current.push({
-        id: Date.now(),
-        x: playerRef.current.x + playerRef.current.width,
-        y: playerRef.current.y + playerRef.current.height / 2,
-        width: 15, height: 15, vx: 20, markedForDeletion: false, trail: []
-      });
-    }
-  };
-
   // Main Loop
   useEffect(() => {
-    if (gameState !== GameState.PLAYING && gameState !== GameState.INTRO) { soundManager.setSleighVolume(0); return; }
+    if (gameState !== GameState.PLAYING && gameState !== GameState.INTRO) return;
 
-    let animationFrameId: number;
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d', { alpha: false });
-    if (!canvas || !ctx) return;
+    let animId: number;
+    const ctx = canvasRef.current?.getContext('2d', { alpha: false });
+    if (!ctx) return;
 
     const resetGame = () => {
-      playerRef.current = {
-        id: 0, x: 150, y: 300, width: 90, height: 40, markedForDeletion: false,
-        vy: 0, lives: 3, snowballs: 0, isInvincible: false, invincibleTimer: 0,
-        healingTimer: 0, speedTimer: 0, angle: 0
-      };
-      obstaclesRef.current = []; powerupsRef.current = []; lettersRef.current = []; landmarksRef.current = [];
-      projectilesRef.current = []; particlesRef.current = []; collectedPowerupsRef.current = [];
-      activeDialogueRef.current = null; activeWishRef.current = null;
-      triggeredStoryMomentsRef.current.clear(); triggeredLandmarksRef.current.clear(); triggeredLettersRef.current.clear();
-      endingMusicTriggeredRef.current = false; flashTimerRef.current = 0; 
-      
+      playerRef.current = { id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false, vy: 0, integrity: 100, energy: 100, maxEnergy: 100, isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false };
+      obstaclesRef.current = []; powerupsRef.current = []; logsRef.current = []; landmarksRef.current = []; empsRef.current = []; particlesRef.current = [];
       distanceRef.current = 0; scoreRef.current = 0; timeRef.current = TOTAL_GAME_TIME_SECONDS;
-      shakeRef.current = 0; 
-      isEndingSequenceRef.current = false; joyRideModeRef.current = false;
-      joyRideTimerRef.current = 0; masterGiftDroppedRef.current = false;
-      lastLevelIndexRef.current = -1; soundManager.stopBgm();
+      triggeredEventsRef.current.clear(); isEndingSequenceRef.current = false; endingTimerRef.current = 0; endingMusicTriggeredRef.current = false;
+      soundManager.stopBgm();
     };
 
-    if (gameState === GameState.INTRO || (gameState === GameState.PLAYING && playerRef.current.lives <= 0)) resetGame();
+    if (gameState === GameState.INTRO || playerRef.current.integrity <= 0) resetGame();
     lastFrameTimeRef.current = performance.now();
 
-    const render = (timestamp: number) => {
-      const dt = Math.min((timestamp - lastFrameTimeRef.current) / 1000, 0.1);
-      lastFrameTimeRef.current = timestamp;
-      update(dt, timestamp);
-      draw(ctx, timestamp);
+    const render = (now: number) => {
+      const dt = Math.min((now - lastFrameTimeRef.current) / 1000, 0.1);
+      lastFrameTimeRef.current = now;
+      update(dt, now);
+      draw(ctx, now);
 
-      if (gameState === GameState.INTRO) { animationFrameId = requestAnimationFrame(render); return; }
+      if (gameState === GameState.INTRO) { animId = requestAnimationFrame(render); return; }
 
-      if (playerRef.current.lives > 0) {
-          if (gameMode === GameMode.STORY && joyRideTimerRef.current < 0 && joyRideModeRef.current) {
-             // Wait for end
-          } else if (gameMode === GameMode.STORY && timeRef.current <= 0 && !isEndingSequenceRef.current) {
-             setGameState(GameState.GAME_OVER);
-          } else {
-              animationFrameId = requestAnimationFrame(render);
-          }
+      if (playerRef.current.integrity > 0) {
+          animId = requestAnimationFrame(render);
       } else {
           setGameState(GameState.GAME_OVER);
       }
     };
 
-    const update = (dt: number, timestamp: number) => {
+    const update = (dt: number, now: number) => {
       const player = playerRef.current;
       const timeScale = dt * 60;
 
-      if (gameState === GameState.INTRO) {
-          player.y = 300 + Math.sin(timestamp / 800) * 20;
-          return;
+      // 1. Inputs & Physics (Thruster Logic)
+      if (!isEndingSequenceRef.current) {
+          if (pressedKeysRef.current.has('Space') || pressedKeysRef.current.has('ArrowUp')) {
+              player.vy += THRUST_POWER * timeScale; // Thrust up
+              player.isThrusting = true;
+              if (Math.random() < 0.3) createParticles(player.x, player.y + 20, ParticleType.THRUST, 1, '#3b82f6');
+          } else {
+              player.isThrusting = false;
+          }
+          player.vy += GRAVITY * timeScale;
+          player.vy = Math.min(player.vy, MAX_FALL_SPEED);
+          player.y += player.vy * timeScale;
+          
+          // Angle follows velocity
+          const targetAngle = player.vy * 0.05;
+          player.angle += (targetAngle - player.angle) * 0.1 * timeScale;
+
+          // Constraints
+          if (player.y < 0) { player.y = 0; player.vy = 0; }
+          if (player.y > CANVAS_HEIGHT - 60) { player.y = CANVAS_HEIGHT - 60; player.vy = 0; }
       }
 
-      if (!joyRideModeRef.current) timeRef.current -= dt;
-      if (flashTimerRef.current > 0) flashTimerRef.current -= dt;
-      
-      const speedMultiplier = player.speedTimer > 0 ? 1.5 : 1.0; 
+      // 2. Game Progress
+      const speedMult = player.overclockTimer > 0 ? 1.5 : 1.0;
       let progressRatio = distanceRef.current / VICTORY_DISTANCE;
       if (gameMode === GameMode.STORY) progressRatio = Math.min(1.02, progressRatio);
 
-      const currentSpeedFrame = (BASE_SPEED + (Math.min(progressRatio, 3.0) * 6)); 
-      let currentSpeed = isEndingSequenceRef.current ? currentSpeedFrame * 0.5 : currentSpeedFrame * speedMultiplier; 
+      const currentSpeed = isEndingSequenceRef.current ? BASE_SPEED * 0.5 : BASE_SPEED * speedMult;
+      
+      // Update Sound
+      soundManager.setEnginePitch(player.isThrusting ? 0.8 : 0.2);
 
-      // ENDING
-      if (gameMode === GameMode.STORY && progressRatio >= 0.90 && !endingMusicTriggeredRef.current) {
-          endingMusicTriggeredRef.current = true;
-          soundManager.playEndingMusic(0, 10);
-      }
-
-      if (gameMode === GameMode.STORY && progressRatio >= 0.99 && !isEndingSequenceRef.current) {
-          isEndingSequenceRef.current = true;
-          player.isInvincible = true;
-      }
-
-      if (isEndingSequenceRef.current) {
-          soundManager.setSleighVolume(0);
-          if (joyRideModeRef.current) {
-              // TIME JUMP
-              joyRideTimerRef.current -= dt;
-              // Screen fade to white then black handled in draw
-              if (joyRideTimerRef.current <= 0) { setGameState(GameState.VICTORY); onWin(); }
-          } else {
-              // Approaching Machine
-              player.vy = 0; player.y += (350 - player.y) * 0.05 * timeScale;
-              currentSpeed *= 0.95; // Slow to stop
-              
-              if (!masterGiftDroppedRef.current && landmarksRef.current.some(l => l.type === 'CHRONOS_MACHINE' && l.x < CANVAS_WIDTH/2)) {
-                  masterGiftDroppedRef.current = true;
-                  createExplosion(player.x + 200, player.y, '#ffffff'); // Activation flash
-                  flashTimerRef.current = 2.0; 
-                  setTimeout(() => { joyRideModeRef.current = true; joyRideTimerRef.current = 4.0; }, 1000);
-              }
-          }
-      } else {
-           soundManager.setSleighVolume(currentSpeed);
-      }
-
-      if (gameMode === GameMode.STORY && timeRef.current < 30 && Math.floor(timeRef.current) !== Math.floor(timeRef.current + dt) && !isEndingSequenceRef.current) {
-         soundManager.playTimeWarning();
-      }
-
-      if (!joyRideModeRef.current || joyRideTimerRef.current > 2.0) {
-         distanceRef.current += currentSpeed * timeScale;
-         scoreRef.current += currentSpeed * 0.1 * timeScale;
-      }
-
-      // Level Management
+      // Level Logic
       let levelIndex = 0;
-      let effectiveProgress = progressRatio * 100;
-      if (gameMode === GameMode.ENDLESS && progressRatio > 1) effectiveProgress = (progressRatio % 1) * 100;
-      else if (gameMode === GameMode.STORY) effectiveProgress = Math.min(100, effectiveProgress);
-
-      for (let i = LEVELS.length - 1; i >= 0; i--) {
-        if (effectiveProgress >= LEVEL_THRESHOLDS[i]) { levelIndex = i; break; }
-      }
+      const progressPercent = progressRatio * 100;
+      for (let i = LEVELS.length - 1; i >= 0; i--) { if (progressPercent >= LEVEL_THRESHOLDS[i]) { levelIndex = i; break; }}
+      
       if (levelIndex !== lastLevelIndexRef.current) {
           soundManager.playLevelBgm(levelIndex);
           lastLevelIndexRef.current = levelIndex;
       }
       const level = LEVELS[levelIndex];
 
-      // Story & Spawning
-      if (gameMode === GameMode.STORY) {
-          STORY_MOMENTS.forEach(moment => {
-            if (progressRatio >= moment.progress && !triggeredStoryMomentsRef.current.has(moment.dialogue.id)) {
-              triggeredStoryMomentsRef.current.add(moment.dialogue.id);
-              activeDialogueRef.current = moment.dialogue;
-              setTimeout(() => { if (activeDialogueRef.current?.id === moment.dialogue.id) activeDialogueRef.current = null; }, 5000);
-            }
-          });
-          LANDMARKS.forEach(lm => {
-              if (progressRatio >= lm.progress && !triggeredLandmarksRef.current.has(lm.type)) {
-                  triggeredLandmarksRef.current.add(lm.type);
-                  landmarksRef.current.push({
-                      id: Date.now(), x: CANVAS_WIDTH + 200, y: CANVAS_HEIGHT - 350,
-                      width: 250, height: 350, markedForDeletion: false, type: lm.type, name: lm.name
-                  });
-              }
-          });
-          NARRATIVE_LETTERS.forEach(nl => {
-              const key = `letter_${nl.progress}`;
-              if (progressRatio >= nl.progress && !triggeredLettersRef.current.has(key)) {
-                  triggeredLettersRef.current.add(key);
-                  lettersRef.current.push({
-                      id: Date.now(), x: CANVAS_WIDTH + 100, y: Math.random() * (CANVAS_HEIGHT - 200) + 50,
-                      width: 30, height: 30, floatOffset: 0, markedForDeletion: false, message: nl.message, isGolden: true
-                  });
-              }
-          });
+      // Ending Sequence
+      if (gameMode === GameMode.STORY && progressRatio >= 0.96 && !isEndingSequenceRef.current) {
+          isEndingSequenceRef.current = true;
+          player.isShielded = true; // Cinematic invincibility
+          soundManager.playEndingMusic();
+      }
+      if (isEndingSequenceRef.current) {
+          player.y += (CANVAS_HEIGHT/2 - player.y) * 0.05 * timeScale; // Center player
+          endingTimerRef.current += dt;
+          if (endingTimerRef.current > 4.0 && landmarksRef.current.some(l => l.type === 'CHRONOS_RING' && l.x < 300)) {
+               setGameState(GameState.VICTORY); onWin();
+          }
+      } else {
+          distanceRef.current += currentSpeed * timeScale;
+          scoreRef.current += currentSpeed * 0.1 * timeScale;
+          timeRef.current -= dt;
       }
 
-      // Physics
+      // 3. Spawning
       if (!isEndingSequenceRef.current) {
-          player.vy += GRAVITY * timeScale;
-          player.y += player.vy * timeScale;
-          player.angle += ((Math.min(Math.max(player.vy * 0.05, -0.2), 0.2)) - player.angle) * 0.1 * timeScale;
-          // Lantern Sway particles
-          if(Math.random() < 0.2) createParticles(player.x + 80, player.y + 10, ParticleType.EMBER, 1, '#fbbf24'); 
-      }
-      
-      if (player.y + player.height > CANVAS_HEIGHT - 50) { player.y = CANVAS_HEIGHT - 50 - player.height; player.vy = 0; }
-      if (player.y < 0) { player.y = 0; player.vy = 0; }
-      if (player.invincibleTimer > 0) player.invincibleTimer -= dt;
-      if (player.speedTimer > 0) player.speedTimer -= dt;
-      if (player.healingTimer > 0) {
-        player.healingTimer -= dt;
-        if (Math.random() < 0.2) createParticles(player.x, player.y, ParticleType.GLOW, 1, '#86efac');
-        if (player.healingTimer <= 0 && player.lives < 3) { player.lives++; soundManager.playHeal(); }
-      }
-      player.isInvincible = player.invincibleTimer > 0;
-
-      // Parallax
-      bgLayersRef.current.forEach((layer, index) => {
-          layer.offset -= currentSpeed * layer.speedModifier * timeScale;
-          if (layer.offset <= -20) {
-              layer.offset += 20;
-              layer.points.shift();
-              layer.points.push(Math.sin((distanceRef.current * 0.01) + index) * 20 + (Math.random()*10)); // Rugged terrain
-              
-              if (bgStructuresRef.current[index]) {
-                  bgStructuresRef.current[index].shift();
-                  const chance = index === 1 ? 0.05 : 0.02;
-                  bgStructuresRef.current[index].push(Math.random() < chance);
-              }
+          // Obstacles
+          if (Math.random() < 0.015 * level.spawnRate * timeScale && levelIndex !== 4) {
+              const types: Obstacle['type'][] = ['DEBRIS', 'DRONE', 'SERVER_TOWER', 'ENERGY_BARRIER'];
+              const type = types[Math.floor(Math.random() * types.length)];
+              obstaclesRef.current.push({
+                  id: Date.now(), x: CANVAS_WIDTH + 50, 
+                  y: type === 'DRONE' ? Math.random() * (CANVAS_HEIGHT-200) : (type === 'SERVER_TOWER' ? CANVAS_HEIGHT - 150 : Math.random() * (CANVAS_HEIGHT-100)),
+                  width: type === 'SERVER_TOWER' ? 60 : 40, height: type === 'SERVER_TOWER' ? 150 : 40,
+                  type, isDisabled: false, markedForDeletion: false
+              });
           }
-      });
-      starsRef.current.forEach(star => {
-          star.x -= (star.speed + currentSpeed * 0.5) * timeScale;
-          if (star.x < 0) { star.x = CANVAS_WIDTH; star.y = Math.random() * CANVAS_HEIGHT; }
-      });
-
-      // Spawning
-      if (!isEndingSequenceRef.current && Math.random() < 0.015 * level.spawnRateMultiplier * timeScale) {
-        const obsTypes: Obstacle['type'][] = ['RUIN_PILLAR', 'RUSTED_DRONE', 'FROZEN_BEAM'];
-        let available = obsTypes;
-        if (levelIndex === 4) available = []; 
-        
-        if (available.length > 0) {
-            const type = available[Math.floor(Math.random() * available.length)];
-            obstaclesRef.current.push({
-              id: Date.now() + Math.random(),
-              x: CANVAS_WIDTH + 100,
-              y: type === 'RUSTED_DRONE' ? Math.random() * (CANVAS_HEIGHT - 200) : CANVAS_HEIGHT - 100,
-              width: 50,
-              height: type === 'RUIN_PILLAR' ? 120 : 50,
-              type: type, markedForDeletion: false, rotation: 0
-            });
-        }
+          // Powerups
+          if (Math.random() < 0.005 * timeScale) {
+              const types = Object.values(PowerupType);
+              powerupsRef.current.push({
+                  id: Date.now(), x: CANVAS_WIDTH, y: Math.random()*(CANVAS_HEIGHT-100), width: 25, height: 25,
+                  type: types[Math.floor(Math.random()*types.length)], floatOffset: 0, markedForDeletion: false
+              });
+          }
+          // Logs
+          if (Math.random() < 0.003 * timeScale && gameMode === GameMode.STORY) {
+              logsRef.current.push({
+                  id: Date.now(), x: CANVAS_WIDTH, y: Math.random()*(CANVAS_HEIGHT-200), width: 30, height: 20,
+                  message: DATA_LOGS[Math.floor(Math.random() * DATA_LOGS.length)], floatOffset: 0, markedForDeletion: false
+              });
+          }
       }
+
+      // Narrative Triggers
+      if (gameMode === GameMode.STORY) {
+         STORY_MOMENTS.forEach(m => {
+             if (progressRatio >= m.progress && !triggeredEventsRef.current.has(m.dialogue.id)) {
+                 triggeredEventsRef.current.add(m.dialogue.id);
+                 activeDialogueRef.current = m.dialogue;
+                 setTimeout(() => { if (activeDialogueRef.current?.id === m.dialogue.id) activeDialogueRef.current = null; }, 6000);
+             }
+         });
+         NARRATIVE_FRAGMENTS.forEach(nf => {
+             const key = `frag_${nf.progress}`;
+             if (progressRatio >= nf.progress && !triggeredEventsRef.current.has(key)) {
+                 triggeredEventsRef.current.add(key);
+                 logsRef.current.push({
+                     id: Date.now(), x: CANVAS_WIDTH + 100, y: 100 + Math.random()*300, width: 30, height: 20,
+                     message: nf.message, floatOffset: 0, markedForDeletion: false, isCoreMemory: true
+                 });
+             }
+         });
+         LANDMARKS.forEach(lm => {
+             if (progressRatio >= lm.progress && !triggeredEventsRef.current.has(lm.type)) {
+                 triggeredEventsRef.current.add(lm.type);
+                 landmarksRef.current.push({
+                     id: Date.now(), x: CANVAS_WIDTH + 100, y: CANVAS_HEIGHT/2, width: 300, height: 300,
+                     type: lm.type, name: lm.name, markedForDeletion: false
+                 });
+             }
+         });
+      }
+
+      // 4. Updates & Collisions
       
-      if (!isEndingSequenceRef.current && Math.random() < 0.005 * timeScale && levelIndex !== 4) {
-          const pTypes = Object.values(PowerupType);
-          powerupsRef.current.push({
-            id: Date.now(), x: CANVAS_WIDTH + 100, y: Math.random() * (CANVAS_HEIGHT - 200) + 50,
-            width: 30, height: 30, type: pTypes[Math.floor(Math.random() * pTypes.length)], floatOffset: 0, markedForDeletion: false
+      // EMP Expansion
+      empsRef.current.forEach(emp => {
+          emp.radius += 15 * timeScale;
+          if (emp.radius > emp.maxRadius) emp.markedForDeletion = true;
+          // Disable obstacles
+          obstaclesRef.current.forEach(obs => {
+             const dx = (obs.x + obs.width/2) - emp.x; const dy = (obs.y + obs.height/2) - emp.y;
+             if (Math.sqrt(dx*dx + dy*dy) < emp.radius && !obs.isDisabled) {
+                 obs.isDisabled = true;
+                 createParticles(obs.x, obs.y, ParticleType.GLITCH, 10, '#22c55e');
+                 scoreRef.current += 50;
+             }
           });
-      }
+      });
 
-      if (!isEndingSequenceRef.current && Math.random() < ((gameMode === GameMode.STORY && levelIndex === 4) ? 0.02 : 0.003) * timeScale) {
-          const msg = ARTIFACTS[Math.floor(Math.random() * ARTIFACTS.length)];
-          const isGolden = (gameMode === GameMode.STORY && levelIndex === 4);
-          lettersRef.current.push({
-              id: Date.now(), x: CANVAS_WIDTH + 100, y: Math.random() * (CANVAS_HEIGHT - 250) + 50,
-              width: 30, height: 20, floatOffset: 0, markedForDeletion: false, message: msg, isGolden
-          });
-      }
+      player.energy = Math.min(player.maxEnergy, player.energy + ENERGY_RECHARGE_RATE * timeScale);
+      if (player.shieldTimer > 0) player.shieldTimer -= dt;
+      if (player.overclockTimer > 0) player.overclockTimer -= dt;
+      player.isShielded = player.shieldTimer > 0 || isEndingSequenceRef.current;
 
-      // Collisions
+      // Obstacles
       obstaclesRef.current.forEach(obs => {
-        obs.x -= currentSpeed * level.obstacleSpeedMultiplier * timeScale;
-        if (obs.type === 'RUSTED_DRONE') { obs.y += Math.sin(timestamp / 500 + obs.id) * 2; }
-        if (obs.x + obs.width < -100) obs.markedForDeletion = true;
-        
-        if (!cinematicMode && !player.isInvincible && checkCollision(player, obs)) {
-          if (gameMode === GameMode.STORY && levelIndex === 4) {} 
-          else {
-              player.lives--; soundManager.playCrash(); player.invincibleTimer = 2.0; shakeRef.current = 15;
-              createExplosion(player.x, player.y, '#9ca3af'); // Grey/Dust explosion
+          obs.x -= currentSpeed * level.obstacleSpeed * timeScale;
+          if (obs.x < -100) obs.markedForDeletion = true;
+          
+          if (!player.isShielded && !obs.isDisabled && checkCollision(player, obs)) {
+              player.integrity -= 20;
+              soundManager.playDamage();
+              shakeRef.current = 15;
+              player.shieldTimer = 1.0; // I-frames
+              createParticles(player.x, player.y, ParticleType.SPARK, 15, '#ef4444');
           }
-        }
-      });
-      
-      powerupsRef.current.forEach(pup => {
-        pup.x -= currentSpeed * timeScale;
-        if (checkCollision(player, pup)) {
-          pup.markedForDeletion = true; applyPowerup(pup.type); soundManager.playPowerup(pup.type);
-          createParticles(pup.x, pup.y, ParticleType.GLOW, 20, POWERUP_COLORS[pup.type]);
-          collectedPowerupsRef.current.push({ id: Date.now(), type: pup.type });
-        }
-      });
-      
-      landmarksRef.current.forEach(lm => {
-         lm.x -= currentSpeed * timeScale;
-         if (lm.x < -300) lm.markedForDeletion = true;
       });
 
-      lettersRef.current.forEach(l => {
-         l.x -= currentSpeed * timeScale;
-         if (checkCollision(player, l)) {
-             l.markedForDeletion = true; soundManager.playCollectWish();
-             activeWishRef.current = l.message;
-             setTimeout(() => { if (activeWishRef.current === l.message) activeWishRef.current = null; }, 4000);
-         }
+      // Powerups
+      powerupsRef.current.forEach(p => {
+          p.x -= currentSpeed * timeScale;
+          if (checkCollision(player, p)) {
+              p.markedForDeletion = true;
+              soundManager.playCollectData();
+              if (p.type === PowerupType.CHARGE) player.energy = player.maxEnergy;
+              if (p.type === PowerupType.REPAIR) player.integrity = Math.min(100, player.integrity + 30);
+              if (p.type === PowerupType.SHIELD) player.shieldTimer = 5.0;
+              if (p.type === PowerupType.OVERCLOCK) player.overclockTimer = 8.0;
+          }
       });
 
-      projectilesRef.current.forEach(p => {
-        p.x += p.vx * timeScale;
-        if (p.x > CANVAS_WIDTH) p.markedForDeletion = true;
-        obstaclesRef.current.forEach(obs => {
-            if (!obs.markedForDeletion && checkCollision(p, obs)) {
-                obs.markedForDeletion = true; p.markedForDeletion = true;
-                soundManager.playCrash(); createExplosion(obs.x, obs.y, '#93c5fd'); scoreRef.current += 100;
-            }
-        });
+      // Logs
+      logsRef.current.forEach(l => {
+          l.x -= currentSpeed * timeScale;
+          if (checkCollision(player, l)) {
+              l.markedForDeletion = true;
+              soundManager.playCollectData();
+              activeLogRef.current = l.message;
+              setTimeout(() => { if (activeLogRef.current === l.message) activeLogRef.current = null; }, 4000);
+          }
       });
 
+      // Landmarks
+      landmarksRef.current.forEach(l => {
+          l.x -= currentSpeed * timeScale;
+      });
+
+      // Particles
       particlesRef.current.forEach(p => {
-        p.x += p.vx * timeScale; p.y += p.vy * timeScale; p.life -= dt; p.alpha = p.life / p.maxLife;
-        if (p.type === ParticleType.ASH) { p.y += 1 * timeScale; p.x += Math.sin(timestamp/500)*0.5; } 
+          p.x += p.vx * timeScale; p.y += p.vy * timeScale;
+          p.life -= dt;
       });
-      particlesRef.current = particlesRef.current.filter(p => p.life > 0);
 
+      // Cleanup
       obstaclesRef.current = obstaclesRef.current.filter(e => !e.markedForDeletion);
       powerupsRef.current = powerupsRef.current.filter(e => !e.markedForDeletion);
-      lettersRef.current = lettersRef.current.filter(e => !e.markedForDeletion);
-      landmarksRef.current = landmarksRef.current.filter(e => !e.markedForDeletion);
-      projectilesRef.current = projectilesRef.current.filter(e => !e.markedForDeletion);
+      logsRef.current = logsRef.current.filter(e => !e.markedForDeletion);
+      empsRef.current = empsRef.current.filter(e => !e.markedForDeletion);
+      particlesRef.current = particlesRef.current.filter(p => p.life > 0);
 
       if (shakeRef.current > 0) shakeRef.current *= 0.9;
-      if (Math.floor(timestamp / 100) > Math.floor((timestamp - dt * 1000) / 100)) {
-        const newPowerups = collectedPowerupsRef.current; collectedPowerupsRef.current = [];
-        setHudState({ lives: player.lives, snowballs: player.snowballs, progress: progressRatio * 100, timeLeft: timeRef.current, levelIndex, score: scoreRef.current, activeSpeed: player.speedTimer, activeHealing: player.healingTimer, collectedPowerups: newPowerups, activeDialogue: activeDialogueRef.current, activeWish: activeWishRef.current });
-      }
-    };
 
-    const draw = (ctx: CanvasRenderingContext2D, timestamp: number) => {
-      const level = LEVELS[hudState.levelIndex];
-      // Background Gradient - Desolate
-      const grad = ctx.createLinearGradient(0,0,0,CANVAS_HEIGHT);
-      grad.addColorStop(0, level.backgroundGradient[0]); 
-      grad.addColorStop(1, level.backgroundGradient[1]); 
-      ctx.fillStyle = grad;
-      ctx.fillRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-      // Stars/Snow - Ash
-      ctx.fillStyle = "#cbd5e1";
-      starsRef.current.forEach(s => {
-          ctx.globalAlpha = Math.random() * 0.2 + 0.1;
-          ctx.beginPath(); ctx.arc(s.x, s.y, s.size/2, 0, Math.PI*2); ctx.fill();
-      });
-      ctx.globalAlpha = 1;
-
-      // Parallax Hills - Silhouette Ruins
-      drawParallaxLayer(ctx, bgLayersRef.current[0], CANVAS_HEIGHT - 120, "#020617", timestamp); 
-      drawParallaxLayer(ctx, bgLayersRef.current[1], CANVAS_HEIGHT - 80, "#0f172a", timestamp, bgStructuresRef.current[1]); 
-      
-      ctx.save();
-      const dx = (Math.random() - 0.5) * shakeRef.current; 
-      const dy = (Math.random() - 0.5) * shakeRef.current;
-      ctx.translate(dx, dy);
-
-      drawParallaxLayer(ctx, bgLayersRef.current[2], CANVAS_HEIGHT - 40, "#1e293b", timestamp, bgStructuresRef.current[2]); 
-
-      landmarksRef.current.forEach(lm => drawLandmark(ctx, lm));
-      powerupsRef.current.forEach(p => drawPowerup(ctx, p));
-      lettersRef.current.forEach(l => drawLetter(ctx, l));
-      obstaclesRef.current.forEach(o => drawObstacle(ctx, o));
-      
-      // Projectiles (Spirit Orbs)
-      projectilesRef.current.forEach(p => {
-          ctx.fillStyle = "#93c5fd"; 
-          ctx.shadowColor = "#60a5fa"; ctx.shadowBlur = 10;
-          ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
-          ctx.shadowBlur = 0;
-      });
-
-      drawPlayer(ctx, playerRef.current);
-
-      particlesRef.current.forEach(p => {
-          ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
-          if (p.type === ParticleType.EMBER || p.type === ParticleType.GLOW) { 
-              ctx.globalCompositeOperation = 'lighter'; 
-              ctx.shadowColor = p.color; ctx.shadowBlur = 10;
-          }
-          ctx.fillRect(p.x, p.y, p.radius, p.radius); 
-          ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 0;
-      });
-
-      if (flashTimerRef.current > 0) {
-          ctx.fillStyle = `rgba(255,255,255,${flashTimerRef.current})`; ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-      }
-      ctx.restore();
-    };
-
-    animationFrameId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [gameState, gameMode]);
-
-  // --- Rendering Helpers ---
-
-  const checkCollision = (r1: Entity, r2: Entity) => (r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y);
-  
-  const createParticles = (x: number, y: number, type: ParticleType, count: number, color: string) => {
-      for(let i=0; i<count; i++) {
-          particlesRef.current.push({
-              id: Math.random(), type, x, y, radius: Math.random()*4+1,
-              vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, alpha: 1, color, life: 1, maxLife: 1, growth: 0
+      // Sync HUD
+      if (now % 100 < 20) {
+          setHudState({ 
+            integrity: player.integrity, energy: player.energy, isShielded: player.isShielded,
+            progress: progressPercent, timeLeft: timeRef.current, levelIndex, score: scoreRef.current,
+            activeDialogue: activeDialogueRef.current, activeLog: activeLogRef.current
           });
       }
-  };
+    };
 
-  const createExplosion = (x: number, y: number, color: string) => {
-      createParticles(x, y, ParticleType.EMBER, 10, color);
-      createParticles(x, y, ParticleType.DUST, 15, '#475569');
-  };
+    const draw = (ctx: CanvasRenderingContext2D, now: number) => {
+        const level = LEVELS[hudState.levelIndex];
+        
+        // 1. Sky & Scanlines
+        const grad = ctx.createLinearGradient(0,0,0,CANVAS_HEIGHT);
+        grad.addColorStop(0, level.colors.sky[0]); grad.addColorStop(1, level.colors.sky[1]);
+        ctx.fillStyle = grad; ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
 
-  const applyPowerup = (type: PowerupType) => {
-      const p = playerRef.current;
-      if (type === PowerupType.SPEED) p.speedTimer = 8;
-      if (type === PowerupType.SNOWBALLS) p.snowballs += 10;
-      if (type === PowerupType.BLAST) { obstaclesRef.current = []; createExplosion(CANVAS_WIDTH/2, CANVAS_HEIGHT/2, '#fff'); }
-      if (type === PowerupType.HEALING) p.healingTimer = 5;
-      if (type === PowerupType.LIFE) p.lives = Math.min(3, p.lives+1);
-  };
+        // Scanline effect
+        ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+        for(let i=0; i<CANVAS_HEIGHT; i+=4) ctx.fillRect(0, i, CANVAS_WIDTH, 1);
 
-  const drawParallaxLayer = (ctx: CanvasRenderingContext2D, layer: BackgroundLayer, baseY: number, color: string, timestamp: number, structs?: boolean[]) => {
-      ctx.fillStyle = color;
-      ctx.beginPath(); ctx.moveTo(0, CANVAS_HEIGHT);
-      for (let i = 0; i < layer.points.length - 1; i++) {
-          const x = (i * 20) + layer.offset; const y = baseY + layer.points[i];
-          const nextX = ((i + 1) * 20) + layer.offset; const nextY = baseY + layer.points[i+1];
-          ctx.lineTo(x, y); ctx.lineTo(nextX, nextY);
-      }
-      ctx.lineTo(CANVAS_WIDTH + 200, CANVAS_HEIGHT); ctx.fill();
-      
-      // Ruins / Pillars
-      if (structs) {
-          ctx.shadowColor = "#000"; ctx.shadowBlur = 5;
-          for(let i=0; i<layer.points.length; i++) {
-              if (structs[i]) {
-                  const x = (i * 20) + layer.offset; const y = baseY + layer.points[i];
-                  // Broken Pillar
-                  ctx.fillStyle = color; // Same as ground but taller
-                  ctx.fillRect(x, y - 60, 10, 60);
-                  // Crumbling top
-                  ctx.beginPath(); ctx.moveTo(x, y-60); ctx.lineTo(x+10, y-60); ctx.lineTo(x+5, y-70); ctx.fill();
-              }
-          }
-          ctx.shadowBlur = 0;
-      }
-  };
+        // Stars
+        starsRef.current.forEach(s => {
+            ctx.fillStyle = `rgba(200, 230, 255, ${s.opacity})`;
+            ctx.fillRect(s.x, s.y, s.size, s.size);
+        });
 
-  const drawPlayer = (ctx: CanvasRenderingContext2D, p: Player) => {
-      ctx.save(); ctx.translate(p.x + p.width/2, p.y + p.height/2); ctx.rotate(p.angle);
-      if (p.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) { ctx.restore(); return; }
-      
-      // KRAMPUS'S SLEIGH (Scavenged)
-      
-      // Runners (Rusted Metal)
-      ctx.strokeStyle = "#78350f"; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(-30, 20); ctx.lineTo(30, 20); ctx.quadraticCurveTo(40, 15, 35, 10); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(-20, 20); ctx.lineTo(-20, 10); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(20, 20); ctx.lineTo(20, 10); ctx.stroke();
+        // 2. Parallax Grid
+        bgLayersRef.current.forEach((layer, i) => {
+            ctx.fillStyle = level.colors.grid;
+            ctx.globalAlpha = 0.3 + (i * 0.2);
+            ctx.beginPath();
+            ctx.moveTo(0, CANVAS_HEIGHT);
+            for(let j=0; j<layer.points.length; j++) {
+                ctx.lineTo((j*40) - (distanceRef.current * layer.speedModifier)%40, CANVAS_HEIGHT - 100 + layer.points[j] - (i*50));
+            }
+            ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1;
 
-      // Body (Old Wood)
-      ctx.fillStyle = "#451a03"; 
-      ctx.fillRect(-35, 0, 70, 15);
-      
-      // Krampus Figure
-      ctx.fillStyle = "#1e293b"; // Dark Cloak
-      ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.lineTo(0, -25); ctx.fill(); // Body
-      
-      // Head & Horns
-      ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.arc(0, -25, 6, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(-4, -30); ctx.lineTo(-8, -40); ctx.stroke(); // Left Horn
-      ctx.beginPath(); ctx.moveTo(4, -30); ctx.lineTo(8, -40); ctx.stroke(); // Right Horn
+        ctx.save();
+        const dx = (Math.random()-0.5)*shakeRef.current; const dy = (Math.random()-0.5)*shakeRef.current;
+        ctx.translate(dx, dy);
 
-      // The Lantern (Hanging from back)
-      ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(-35, 0); ctx.lineTo(-40, 5); ctx.stroke();
-      
-      // Lantern Glow
-      ctx.shadowColor = "#fbbf24"; ctx.shadowBlur = 20;
-      ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.arc(-40, 10, 4, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = 0;
+        // 3. World Entities
+        landmarksRef.current.forEach(l => drawLandmark(ctx, l));
+        obstaclesRef.current.forEach(o => drawObstacle(ctx, o));
+        powerupsRef.current.forEach(p => drawPowerup(ctx, p));
+        logsRef.current.forEach(l => drawLog(ctx, l));
 
-      ctx.restore();
-  };
+        // 4. Effects
+        empsRef.current.forEach(emp => {
+            ctx.strokeStyle = "#0ea5e9";
+            ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(emp.x, emp.y, emp.radius, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = "rgba(14, 165, 233, 0.2)"; ctx.fill();
+        });
 
-  const drawObstacle = (ctx: CanvasRenderingContext2D, o: Obstacle) => {
-      ctx.save(); ctx.translate(o.x, o.y);
-      
-      if (o.type === 'RUIN_PILLAR') {
-          ctx.fillStyle = "#334155"; 
-          ctx.fillRect(0,0,o.width, o.height);
-          // Cracks
-          ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.moveTo(10, 10); ctx.lineTo(20, 40); ctx.lineTo(10, 60); ctx.stroke();
-      } else if (o.type === 'RUSTED_DRONE') {
-          ctx.fillStyle = "#78350f"; 
-          ctx.beginPath(); ctx.arc(o.width/2, o.height/2, 15, 0, Math.PI*2); ctx.fill();
-          // Red Eye (Fading)
-          ctx.fillStyle = "#dc2626"; ctx.shadowColor = "#dc2626"; ctx.shadowBlur = 5;
-          ctx.beginPath(); ctx.arc(o.width/2, o.height/2, 4, 0, Math.PI*2); ctx.fill();
-          ctx.shadowBlur = 0;
-      } else {
-          // Frozen Beam
-          ctx.fillStyle = "#64748b"; 
-          ctx.fillRect(0,0,o.width, o.height);
-          ctx.fillStyle = "#94a3b8"; ctx.fillRect(5, 0, 5, o.height); // Ice streak
-      }
-      ctx.restore();
-  };
+        drawPlayer(ctx, playerRef.current);
+        
+        particlesRef.current.forEach(p => {
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.life / p.maxLife;
+            ctx.fillRect(p.x, p.y, p.radius, p.radius);
+        });
 
-  const drawPowerup = (ctx: CanvasRenderingContext2D, p: Powerup) => {
-      ctx.save(); ctx.translate(p.x, p.y);
-      const color = POWERUP_COLORS[p.type];
-      ctx.shadowColor = color; ctx.shadowBlur = 10;
-      ctx.strokeStyle = color; ctx.lineWidth = 2;
-      ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0,p.width,p.height); 
-      ctx.strokeRect(0,0,p.width,p.height);
-      
-      ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = "16px monospace";
-      const icon = p.type === 'SPEED' ? '⚡' : (p.type === 'SNOWBALLS' ? '✦' : (p.type === 'HEALING' ? '+' : '♥'));
-      ctx.fillText(icon, p.width/2, p.height/2);
-      ctx.restore();
-  };
+        // Fog Overlay
+        if (hudState.levelIndex < 4) {
+            ctx.fillStyle = level.colors.fog;
+            ctx.fillRect(0, CANVAS_HEIGHT-50, CANVAS_WIDTH, 50);
+        }
 
-  const drawLetter = (ctx: CanvasRenderingContext2D, l: Letter) => {
-      ctx.save(); ctx.translate(l.x, l.y);
-      ctx.fillStyle = "#fde047";
-      ctx.shadowColor = "#fde047"; ctx.shadowBlur = 10;
-      // Scroll shape
-      ctx.fillRect(0, 5, 30, 15);
-      ctx.fillStyle = "#451a03"; ctx.fillRect(2, 8, 26, 2); ctx.fillRect(2, 12, 20, 2);
-      ctx.restore();
-  };
+        ctx.restore();
+    };
 
-  const drawLandmark = (ctx: CanvasRenderingContext2D, lm: Landmark) => {
-      ctx.save(); ctx.translate(lm.x, lm.y);
-      ctx.fillStyle = "#0f172a";
-      
-      if (lm.type === 'CHRONOS_MACHINE') {
-          // Big circular gate
-          ctx.beginPath(); ctx.arc(lm.width/2, lm.height/2, 100, 0, Math.PI*2); ctx.fill();
-          ctx.strokeStyle = "#fff"; ctx.lineWidth = 5; ctx.stroke();
-          // Glow center
-          ctx.fillStyle = "#fff"; ctx.shadowColor = "#fff"; ctx.shadowBlur = 50;
-          ctx.beginPath(); ctx.arc(lm.width/2, lm.height/2, 20, 0, Math.PI*2); ctx.fill();
-      } else if (lm.type === 'REINDEER_STATUE') {
-          // Blocky statue
-          ctx.fillRect(0, lm.height-100, 100, 100); // Base
-          ctx.beginPath(); ctx.moveTo(20, lm.height-100); ctx.lineTo(50, lm.height-200); ctx.lineTo(80, lm.height-100); ctx.fill(); // Body
-      } else {
-          // Ruin
-          ctx.fillRect(0,0, lm.width, lm.height);
-      }
-      ctx.restore();
-  };
+    // --- Draw Helpers ---
+    const drawPlayer = (ctx: CanvasRenderingContext2D, p: Player) => {
+        ctx.save(); ctx.translate(p.x + p.width/2, p.y + p.height/2); ctx.rotate(p.angle);
+        
+        // Shield Bubble
+        if (p.isShielded) {
+            ctx.strokeStyle = "#a855f7"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI*2); ctx.stroke();
+        }
+
+        // Tech Sleigh (Scavenger Craft)
+        // Main hull
+        ctx.fillStyle = "#334155"; ctx.fillRect(-30, -10, 60, 20);
+        // Engine Block
+        ctx.fillStyle = "#64748b"; ctx.fillRect(-40, -5, 10, 15);
+        // Cockpit Glow
+        ctx.fillStyle = "#0ea5e9"; ctx.shadowColor = "#0ea5e9"; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(10, -5, 8, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+        // Thruster Glow
+        if (p.isThrusting) {
+            ctx.fillStyle = "#f59e0b"; ctx.shadowColor = "#f59e0b"; ctx.shadowBlur = 15;
+            ctx.beginPath(); ctx.moveTo(-40, 5); ctx.lineTo(-60, 15); ctx.lineTo(-40, 20); ctx.fill(); ctx.shadowBlur = 0;
+        }
+        // Krampus Scarf (Red Tatter)
+        ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, -10); ctx.quadraticCurveTo(-20 - (p.vy*2), -20, -30, -15); ctx.stroke();
+
+        ctx.restore();
+    };
+
+    const drawObstacle = (ctx: CanvasRenderingContext2D, o: Obstacle) => {
+        ctx.save(); ctx.translate(o.x, o.y);
+        ctx.globalAlpha = o.isDisabled ? 0.3 : 1;
+        
+        if (o.type === 'DRONE') {
+            ctx.fillStyle = o.isDisabled ? "#22c55e" : "#ef4444";
+            ctx.beginPath(); ctx.arc(20, 20, 15, 0, Math.PI*2); ctx.fill();
+            // Drone Arms
+            ctx.strokeStyle = "#475569"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(40,40); ctx.moveTo(40,0); ctx.lineTo(0,40); ctx.stroke();
+        } else if (o.type === 'SERVER_TOWER') {
+            ctx.fillStyle = "#1e293b"; ctx.fillRect(0,0,o.width,o.height);
+            // Blink lights
+            ctx.fillStyle = Math.random() > 0.5 ? "#22c55e" : "#0f172a";
+            ctx.fillRect(10, 10, 5, 5);
+        } else {
+            // Debris
+            ctx.fillStyle = "#57534e";
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(o.width, 10); ctx.lineTo(10, o.height); ctx.fill();
+        }
+        ctx.restore();
+    };
+
+    const drawLandmark = (ctx: CanvasRenderingContext2D, lm: Landmark) => {
+        ctx.save(); ctx.translate(lm.x, lm.y - 150);
+        if (lm.type === 'CHRONOS_RING') {
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 8;
+            ctx.beginPath(); ctx.arc(0, 0, 120, 0, Math.PI*2); ctx.stroke();
+            ctx.strokeStyle = "#0ea5e9"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, 100, 0, Math.PI*2); ctx.stroke();
+        } else if (lm.type === 'HOLO_TREE') {
+            ctx.strokeStyle = "#22c55e"; ctx.shadowColor = "#22c55e"; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.moveTo(0, 300); ctx.lineTo(50, 200); ctx.lineTo(20, 200); ctx.lineTo(60, 100); ctx.lineTo(40, 100); ctx.lineTo(0, 0); ctx.stroke();
+            ctx.shadowBlur = 0;
+        } else {
+            // Factory
+            ctx.fillStyle = "#27272a"; ctx.fillRect(0,0,200,300);
+        }
+        ctx.restore();
+    };
+
+    const drawPowerup = (ctx: CanvasRenderingContext2D, p: Powerup) => {
+        const color = POWERUP_COLORS[p.type];
+        ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 10;
+        ctx.fillRect(p.x, p.y, p.width, p.height); ctx.shadowBlur = 0;
+    };
+    
+    const drawLog = (ctx: CanvasRenderingContext2D, l: DataLog) => {
+        ctx.fillStyle = l.isCoreMemory ? "#f59e0b" : "#94a3b8";
+        ctx.fillRect(l.x, l.y, 20, 20);
+    };
+
+    const checkCollision = (r1: Entity, r2: Entity) => (r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y);
+    const createParticles = (x:number, y:number, type:ParticleType, count:number, color:string) => {
+        for(let i=0; i<count; i++) particlesRef.current.push({ id:Math.random(), type, x, y, radius:Math.random()*3+1, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, alpha:1, color, life:0.5, maxLife:0.5 });
+    };
+
+    animId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animId);
+  }, [gameState]);
 
   return (
-    <div className="relative w-full h-full max-w-[1200px] max-h-[600px] mx-auto border-4 border-slate-900 shadow-2xl rounded-sm overflow-hidden bg-black">
-      <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="w-full h-full object-cover" />
-      {gameState !== GameState.INTRO && !cinematicMode && !isEndingSequenceRef.current && (
-        <UIOverlay 
-          lives={hudState.lives} snowballs={hudState.snowballs} progress={hudState.progress} timeLeft={hudState.timeLeft}
-          activePowerups={hudState.activeSpeed + hudState.activeHealing} currentLevelName={LEVELS[hudState.levelIndex].name}
-          score={hudState.score} collectedPowerups={hudState.collectedPowerups} activeDialogue={hudState.activeDialogue} activeWish={hudState.activeWish}
-        />
-      )}
-      <div className="absolute inset-0 flex md:hidden z-40 pointer-events-auto">
-        <div className="w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {playerRef.current.vy = JUMP_STRENGTH; soundManager.playJump();} }} />
-        <div className="w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {shootProjectile();} }} />
-      </div>
+    <div className="relative w-full h-full max-w-[1200px] max-h-[600px] mx-auto border-4 border-slate-800 shadow-2xl overflow-hidden bg-black rounded-lg">
+      <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="w-full h-full" />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))', backgroundSize: '100% 2px, 3px 100%' }}></div>
+      <UIOverlay {...hudState} currentLevelName={LEVELS[hudState.levelIndex].name} currentLevelSub={LEVELS[hudState.levelIndex].subtext} />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 export enum GameState {
   MENU,
   HELP,
@@ -13,11 +14,10 @@ export enum GameMode {
 }
 
 export enum PowerupType {
-  SPEED = 'SPEED',         // Aether Wind
-  SNOWBALLS = 'SNOWBALLS', // Spirit Orbs
-  BLAST = 'BLAST',         // Echo Blast
-  HEALING = 'HEALING',     // Mending Light
-  LIFE = 'LIFE'            // Resolve
+  CHARGE = 'CHARGE',       // Restores Energy
+  REPAIR = 'REPAIR',       // Restores Hull
+  OVERCLOCK = 'OVERCLOCK', // Speed Boost
+  SHIELD = 'SHIELD'        // Invincibility
 }
 
 export interface Entity {
@@ -31,22 +31,24 @@ export interface Entity {
 
 export interface Player extends Entity {
   vy: number;
-  lives: number;
-  snowballs: number;
-  isInvincible: boolean;
-  invincibleTimer: number;
-  healingTimer: number;
-  speedTimer: number;
+  integrity: number;    // Was Lives
+  energy: number;       // Was Snowballs (0-100)
+  maxEnergy: number;
+  isShielded: boolean;
+  shieldTimer: number;
+  overclockTimer: number; // Speed
   angle: number; 
+  isThrusting: boolean; // Visual state
 }
 
 export interface Obstacle extends Entity {
-  type: 'RUIN_PILLAR' | 'RUSTED_DRONE' | 'FROZEN_BEAM' | 'ANCIENT_TREE';
+  type: 'DEBRIS' | 'DRONE' | 'SERVER_TOWER' | 'ENERGY_BARRIER';
+  isDisabled: boolean; // If hit by EMP
   rotation?: number; 
 }
 
 export interface Landmark extends Entity {
-  type: 'SILENT_SKYSCRAPER' | 'REINDEER_STATUE' | 'FACTORY_RUINS' | 'CHRONOS_MACHINE';
+  type: 'HOLO_TREE' | 'RUINED_FACTORY' | 'CHRONOS_RING';
   name: string;
 }
 
@@ -55,23 +57,28 @@ export interface Powerup extends Entity {
   floatOffset: number;
 }
 
-export interface Letter extends Entity {
+export interface DataLog extends Entity {
   message: string;
   floatOffset: number;
-  isGolden?: boolean; 
+  isCoreMemory?: boolean; 
 }
 
-export interface Projectile extends Entity {
-  vx: number;
-  trail: {x: number, y: number}[]; 
+// Replaces Projectile - Area of Effect
+export interface EMPBurst {
+  id: number;
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
+  markedForDeletion: boolean;
 }
 
 export enum ParticleType {
-  ASH,       // Grey snow
-  EMBER,     // Fire from lantern
-  DUST,      // Impact
-  SPIRIT,    // Blue magic
-  GLOW
+  SPARK,     // Electric blue
+  SMOKE,     // Grey/Black
+  GLITCH,    // Green/Pink blocks
+  THRUST,    // Engine exhaust
+  DATA       // Binary 0/1
 }
 
 export interface Particle {
@@ -86,16 +93,18 @@ export interface Particle {
   color: string;
   life: number;
   maxLife: number;
-  growth: number; 
 }
 
 export interface LevelConfig {
   name: string;
-  description: string;
-  backgroundGradient: [string, string];
-  obstacleSpeedMultiplier: number;
-  spawnRateMultiplier: number;
-  weatherIntensity: number;
+  subtext: string;
+  colors: {
+    sky: [string, string];
+    grid: string;
+    fog: string;
+  };
+  obstacleSpeed: number;
+  spawnRate: number;
 }
 
 export interface BackgroundLayer {
@@ -107,6 +116,6 @@ export interface BackgroundLayer {
 
 export interface DialogueLine {
   id: string;
-  speaker: 'KRAMPUS' | 'ARCHIVE_SYSTEM' | 'ECHO';
+  speaker: 'KRAMPUS' | 'SYSTEM' | 'UNKNOWN';
   text: string;
 }
