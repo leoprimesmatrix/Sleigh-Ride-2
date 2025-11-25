@@ -38,16 +38,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   
   // Visuals
   const starsRef = useRef<{x:number, y:number, size:number, opacity:number, blinkSpeed: number}[]>([]); 
+  // Background layers now store seed data for procedural generation consistency
   const bgLayersRef = useRef<BackgroundLayer[]>([
-    { points: [], color: '#0f172a', speedModifier: 0.1, offset: 0 }, // Distant Skyline
-    { points: [], color: '#1e293b', speedModifier: 0.25, offset: 0 }, // Mid-range Ruins
+    { points: [], color: '#0f172a', speedModifier: 0.05, offset: 0 }, // Distant Mega-Structures
+    { points: [], color: '#1e293b', speedModifier: 0.2, offset: 0 },  // Mid-range Skyline
+    { points: [], color: '#334155', speedModifier: 0.5, offset: 0 },  // Foreground Ruins
   ]);
 
   // Logic
   const shakeRef = useRef(0);
   const isEndingSequenceRef = useRef(false);
   const endingTimerRef = useRef(0);
-  const endingMusicTriggeredRef = useRef(false);
 
   // State Sync
   const activeDialogueRef = useRef<DialogueLine | null>(null);
@@ -70,18 +71,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
   const createParticles = (x:number, y:number, type:ParticleType, count:number, color:string) => {
     for(let i=0; i<count; i++) {
+        const speed = type === ParticleType.THRUST ? 4 : 8;
         particlesRef.current.push({ 
             id:Math.random(), 
             type, 
             x, 
             y, 
-            radius: type === ParticleType.THRUST ? Math.random()*4+2 : Math.random()*3+1, 
-            vx: type === ParticleType.THRUST ? -Math.random()*5 - 2 : (Math.random()-0.5)*10, 
-            vy: type === ParticleType.THRUST ? (Math.random()-0.5)*2 : (Math.random()-0.5)*10, 
+            radius: type === ParticleType.THRUST ? Math.random()*3+1 : Math.random()*3+1, 
+            vx: type === ParticleType.THRUST ? -Math.random()*speed - 2 : (Math.random()-0.5)*speed, 
+            vy: type === ParticleType.THRUST ? (Math.random()-0.5)*1 : (Math.random()-0.5)*speed, 
             alpha:1, 
             color, 
-            life: type === ParticleType.THRUST ? 0.3 : 0.8, 
-            maxLife: type === ParticleType.THRUST ? 0.3 : 0.8 
+            life: type === ParticleType.THRUST ? 0.4 : 1.0, 
+            maxLife: type === ParticleType.THRUST ? 0.4 : 1.0 
         });
     }
   };
@@ -138,28 +140,32 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
   // Init Procedural Backgrounds
   useEffect(() => {
-    // Generate jagged city skylines
-    const genCityscape = (width: number, variance: number, minH: number) => {
+    // Generate pseudo-random heights for buildings
+    const genSkyline = (count: number, minH: number, maxH: number) => {
         const pts = [];
-        let h = minH;
-        for (let x = 0; x <= width + 400; x += 40) {
-            if (Math.random() < 0.3) h = minH + Math.random() * variance; // Change height
-            pts.push(h);
+        for (let i = 0; i < count; i++) {
+             // Store height and "building type" seed
+             pts.push({ height: minH + Math.random() * (maxH - minH), type: Math.floor(Math.random() * 5) });
         }
         return pts;
     };
 
-    bgLayersRef.current[0].points = genCityscape(CANVAS_WIDTH, 150, 100);
-    bgLayersRef.current[1].points = genCityscape(CANVAS_WIDTH, 100, 50);
+    // We store building data in 'points' but treating it as a raw array for type compat
+    // Layer 0: Huge background monoliths
+    bgLayersRef.current[0].points = genSkyline(100, 150, 400) as any;
+    // Layer 1: Mid-range textured buildings
+    bgLayersRef.current[1].points = genSkyline(100, 80, 200) as any;
+    // Layer 2: Foreground ruins/pipes
+    bgLayersRef.current[2].points = genSkyline(100, 40, 100) as any;
     
     starsRef.current = [];
-    for(let i=0; i<100; i++) {
+    for(let i=0; i<80; i++) {
         starsRef.current.push({ 
             x: Math.random()*CANVAS_WIDTH, 
             y: Math.random()*CANVAS_HEIGHT, 
-            size: Math.random()*2 + 0.5, 
+            size: Math.random()*1.5 + 0.5, 
             opacity: Math.random(),
-            blinkSpeed: Math.random() * 0.05
+            blinkSpeed: Math.random() * 0.03 + 0.01
         });
     }
     
@@ -179,7 +185,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       playerRef.current = { id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false, vy: 0, integrity: 100, energy: 100, maxEnergy: 100, isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false };
       obstaclesRef.current = []; powerupsRef.current = []; logsRef.current = []; landmarksRef.current = []; empsRef.current = []; particlesRef.current = [];
       distanceRef.current = 0; scoreRef.current = 0; timeRef.current = TOTAL_GAME_TIME_SECONDS;
-      triggeredEventsRef.current.clear(); isEndingSequenceRef.current = false; endingTimerRef.current = 0; endingMusicTriggeredRef.current = false;
+      triggeredEventsRef.current.clear(); isEndingSequenceRef.current = false; endingTimerRef.current = 0;
       soundManager.stopBgm();
     };
 
@@ -211,7 +217,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               player.vy += THRUST_POWER * timeScale; 
               player.isThrusting = true;
               // High-frequency particle emission for smooth trail
-              createParticles(player.x - 10, player.y + 15, ParticleType.THRUST, 2, '#3b82f6'); 
+              createParticles(player.x - 10, player.y + 15, ParticleType.THRUST, 1, '#3b82f6'); 
           } else {
               player.isThrusting = false;
           }
@@ -266,18 +272,35 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (!isEndingSequenceRef.current) {
           if (Math.random() < 0.015 * level.spawnRate * timeScale && levelIndex !== 4) {
               const types: Obstacle['type'][] = ['DEBRIS', 'DRONE', 'SERVER_TOWER', 'ENERGY_BARRIER'];
-              const type = types[Math.floor(Math.random() * types.length)];
+              // Weighted spawn: Debris is common, Towers rare
+              let type = types[0];
+              const r = Math.random();
+              if (r < 0.3) type = 'DEBRIS';
+              else if (r < 0.6) type = 'DRONE';
+              else if (r < 0.85) type = 'ENERGY_BARRIER';
+              else type = 'SERVER_TOWER';
+
+              // Position logic
+              let y = Math.random() * (CANVAS_HEIGHT - 100);
+              let w = 40; let h = 40;
+              
+              if (type === 'SERVER_TOWER') {
+                  y = CANVAS_HEIGHT - 200; w = 60; h = 200;
+              } else if (type === 'ENERGY_BARRIER') {
+                  h = 150; y = Math.random() * (CANVAS_HEIGHT - h); w = 30;
+              } else if (type === 'DEBRIS') {
+                  w = 50; h = 50;
+              }
+
               obstaclesRef.current.push({
-                  id: Date.now(), x: CANVAS_WIDTH + 50, 
-                  y: type === 'DRONE' ? Math.random() * (CANVAS_HEIGHT-200) : (type === 'SERVER_TOWER' ? CANVAS_HEIGHT - 150 : Math.random() * (CANVAS_HEIGHT-100)),
-                  width: type === 'SERVER_TOWER' ? 60 : 40, height: type === 'SERVER_TOWER' ? 150 : 40,
-                  type, isDisabled: false, markedForDeletion: false
+                  id: Date.now(), x: CANVAS_WIDTH + 50, y, width: w, height: h,
+                  type, isDisabled: false, markedForDeletion: false, rotation: Math.random() * Math.PI * 2
               });
           }
           if (Math.random() < 0.005 * timeScale) {
               const types = Object.values(PowerupType);
               powerupsRef.current.push({
-                  id: Date.now(), x: CANVAS_WIDTH, y: Math.random()*(CANVAS_HEIGHT-100), width: 25, height: 25,
+                  id: Date.now(), x: CANVAS_WIDTH, y: Math.random()*(CANVAS_HEIGHT-100), width: 40, height: 40,
                   type: types[Math.floor(Math.random()*types.length)], floatOffset: 0, markedForDeletion: false
               });
           }
@@ -342,11 +365,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       obstaclesRef.current.forEach(obs => {
           obs.x -= currentSpeed * level.obstacleSpeed * timeScale;
           if (obs.x < -100) obs.markedForDeletion = true;
+          if (obs.type === 'DRONE' || obs.type === 'DEBRIS') obs.rotation! += 0.05 * timeScale;
           
           if (!player.isShielded && !obs.isDisabled && checkCollision(player, obs)) {
               player.integrity -= 20;
               soundManager.playDamage();
-              shakeRef.current = 15;
+              shakeRef.current = 20;
               player.shieldTimer = 1.0; 
               createParticles(player.x + 20, player.y + 10, ParticleType.SPARK, 15, '#f59e0b');
               createParticles(player.x + 20, player.y + 10, ParticleType.SMOKE, 8, '#94a3b8');
@@ -355,6 +379,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
       powerupsRef.current.forEach(p => {
           p.x -= currentSpeed * timeScale;
+          p.floatOffset += 0.05 * timeScale;
           if (checkCollision(player, p)) {
               p.markedForDeletion = true;
               soundManager.playCollectData();
@@ -368,6 +393,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
       logsRef.current.forEach(l => {
           l.x -= currentSpeed * timeScale;
+          l.floatOffset += 0.03 * timeScale;
           if (checkCollision(player, l)) {
               l.markedForDeletion = true;
               soundManager.playCollectData();
@@ -424,182 +450,282 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         grad.addColorStop(0, level.colors.sky[0]); grad.addColorStop(1, level.colors.sky[1]);
         ctx.fillStyle = grad; ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
 
-        // 2. Stars with Twinkle
+        // Sun / Moon / Digital Horizon
+        ctx.save();
+        ctx.fillStyle = level.colors.grid; 
+        ctx.shadowColor = level.colors.grid; ctx.shadowBlur = 40;
+        ctx.beginPath(); ctx.arc(CANVAS_WIDTH - 200, 150, 60, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // 2. Stars
         starsRef.current.forEach(s => {
             const flicker = Math.sin(now * 0.005 + s.x) * 0.3 + 0.7;
-            ctx.fillStyle = `rgba(200, 230, 255, ${s.opacity * flicker})`;
+            ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity * flicker})`;
             ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
         });
 
-        // 3. Parallax Skylines
+        // 3. Procedural Skylines (Parallax)
         bgLayersRef.current.forEach((layer, i) => {
-            // Silhouette color calculation
+            ctx.save();
             ctx.fillStyle = layer.color;
-            ctx.beginPath();
-            ctx.moveTo(0, CANVAS_HEIGHT);
+            const blockWidth = 60 + i * 20; // Width varies by layer
             
-            // Draw skyline points
-            for(let j=0; j<layer.points.length; j++) {
-                // Calculate scrolling X position
-                const realX = (j*40) - (distanceRef.current * layer.speedModifier) % 40;
-                // Calculate wrapping index for infinite scroll feel
-                const index = (j + Math.floor(distanceRef.current * layer.speedModifier / 40)) % layer.points.length;
-                const h = layer.points[index] || 50; 
+            // Draw discrete buildings instead of a continuous line for better detail
+            const points = layer.points as any[];
+            const totalWidth = points.length * blockWidth;
+            const scrollPos = (distanceRef.current * layer.speedModifier) % totalWidth;
+            
+            // Calculate starting index
+            const startIndex = Math.floor(scrollPos / blockWidth);
+            const offset = scrollPos % blockWidth;
+
+            for (let j = 0; j < Math.ceil(CANVAS_WIDTH / blockWidth) + 1; j++) {
+                const idx = (startIndex + j) % points.length;
+                const b = points[idx]; // Building data
+                const x = j * blockWidth - offset;
+                const h = b.height;
                 
-                ctx.lineTo(j*40 - (distanceRef.current * layer.speedModifier)%40, CANVAS_HEIGHT - h);
-                // Boxy city shapes
-                ctx.lineTo((j+1)*40 - (distanceRef.current * layer.speedModifier)%40, CANVAS_HEIGHT - h);
+                // Building Body
+                ctx.fillRect(x, CANVAS_HEIGHT - h, blockWidth + 1, h);
+
+                // Windows / Lights Details (Only for closer layers)
+                if (i > 0) {
+                     ctx.fillStyle = i === 1 ? "#334155" : "#475569"; // Window color darker than building
+                     const windowSize = i === 1 ? 4 : 6;
+                     // Deterministic "random" windows based on building seed
+                     const seed = (idx * 1337) % 100;
+                     if (seed % 3 === 0) {
+                        // Strips
+                        ctx.fillRect(x + 10, CANVAS_HEIGHT - h + 10, 5, h - 20);
+                     } else if (seed % 3 === 1) {
+                        // Grid
+                        for (let wy = CANVAS_HEIGHT - h + 10; wy < CANVAS_HEIGHT; wy += windowSize * 3) {
+                            for (let wx = x + 5; wx < x + blockWidth - 5; wx += windowSize * 2) {
+                                if ((wx + wy) % 5 !== 0) ctx.fillRect(wx, wy, windowSize, windowSize);
+                            }
+                        }
+                     }
+                     // Reset fill for next building body
+                     ctx.fillStyle = layer.color;
+                }
             }
-            ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT);
-            ctx.fill();
+            ctx.restore();
         });
 
         // 4. Cyber Grid Floor
         ctx.save();
         ctx.strokeStyle = level.colors.grid;
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.4;
+        const horizonY = CANVAS_HEIGHT - 50;
+        
         ctx.beginPath();
-        // Horizontal lines (perspective)
-        for(let i=0; i<5; i++) {
-             const y = CANVAS_HEIGHT - 100 + (i*25);
-             ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y);
+        // Perspective Lines
+        for(let x = -CANVAS_WIDTH; x < CANVAS_WIDTH * 2; x += 100) {
+            ctx.moveTo(x, horizonY);
+            // Vanishing point approx center
+            const xDist = x - CANVAS_WIDTH/2;
+            ctx.lineTo(CANVAS_WIDTH/2 + xDist * 4, CANVAS_HEIGHT);
         }
-        // Vertical lines (moving)
-        const gridOffset = (distanceRef.current * 0.8) % 100;
-        for(let x=0; x<CANVAS_WIDTH + 100; x+=100) {
-            ctx.moveTo(x - gridOffset, CANVAS_HEIGHT - 100);
-            ctx.lineTo((x - gridOffset - CANVAS_WIDTH/2)*3 + CANVAS_WIDTH/2, CANVAS_HEIGHT);
+        
+        // Horizontal Lines (Moving)
+        const moveZ = (distanceRef.current * 1.5) % 100;
+        for (let z = 0; z < 400; z+=40) {
+             const scale = 1 + z/100;
+             const y = horizonY + z; // Simplified perspective mapping
+             if (y > CANVAS_HEIGHT) break;
+             // We actually just draw horizontal lines that get further apart
+             // Better: Exponential spacing
         }
+        // Simple scrolling horizontal bars
+        for (let i = 0; i < 10; i++) {
+             const yPos = horizonY + Math.pow(i, 2.5) + (moveZ * (i/10)); 
+             if (yPos > CANVAS_HEIGHT) continue;
+             ctx.moveTo(0, yPos); ctx.lineTo(CANVAS_WIDTH, yPos);
+        }
+
         ctx.stroke();
+        
+        // Ground Fill
+        const gradGround = ctx.createLinearGradient(0, horizonY, 0, CANVAS_HEIGHT);
+        gradGround.addColorStop(0, "rgba(0,0,0,0.5)");
+        gradGround.addColorStop(1, level.colors.grid);
+        ctx.fillStyle = gradGround;
+        ctx.fillRect(0, horizonY, CANVAS_WIDTH, CANVAS_HEIGHT - horizonY);
+        
         ctx.restore();
 
-        // 5. Scanlines Overlay (Subtle)
-        ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-        for(let i=0; i<CANVAS_HEIGHT; i+=4) ctx.fillRect(0, i, CANVAS_WIDTH, 1);
-
+        // 5. Screen Effects & Entities
         ctx.save();
-        // Screen Shake
         const dx = (Math.random()-0.5)*shakeRef.current; const dy = (Math.random()-0.5)*shakeRef.current;
         ctx.translate(dx, dy);
 
-        // Entities
         landmarksRef.current.forEach(l => drawLandmark(ctx, l));
-        obstaclesRef.current.forEach(o => drawObstacle(ctx, o));
+        obstaclesRef.current.forEach(o => drawObstacle(ctx, o, now));
         powerupsRef.current.forEach(p => drawPowerup(ctx, p));
         logsRef.current.forEach(l => drawLog(ctx, l));
-
-        // EMP Effects
-        empsRef.current.forEach(emp => {
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.strokeStyle = "#0ea5e9";
-            ctx.lineWidth = 4;
-            ctx.shadowColor = "#0ea5e9"; ctx.shadowBlur = 20;
-            ctx.beginPath(); ctx.arc(emp.x, emp.y, emp.radius, 0, Math.PI*2); ctx.stroke();
-            ctx.fillStyle = "rgba(14, 165, 233, 0.1)"; ctx.fill();
-            ctx.restore();
-        });
+        empsRef.current.forEach(e => drawEMP(ctx, e));
 
         drawPlayer(ctx, playerRef.current);
         
-        // Advanced Particle Rendering
-        particlesRef.current.forEach(p => {
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-            
-            if (p.type === ParticleType.SPARK || p.type === ParticleType.THRUST) {
-                // Glow effect for energy particles
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.fillStyle = p.color;
-                ctx.shadowColor = p.color;
-                ctx.shadowBlur = 10;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
-            } else if (p.type === ParticleType.SMOKE) {
-                // Alpha blend for smoke
-                ctx.fillStyle = p.color;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
-            } else if (p.type === ParticleType.GLITCH) {
-                // Pixelated glitch
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x, p.y, p.radius, p.radius);
-            }
-            ctx.restore();
-        });
+        particlesRef.current.forEach(p => drawParticle(ctx, p));
+        ctx.restore();
 
         // Fog Overlay
         if (hudState.levelIndex < 4) {
-            const gradFog = ctx.createLinearGradient(0, CANVAS_HEIGHT-100, 0, CANVAS_HEIGHT);
+            const gradFog = ctx.createLinearGradient(0, CANVAS_HEIGHT-150, 0, CANVAS_HEIGHT);
             gradFog.addColorStop(0, "rgba(0,0,0,0)");
             gradFog.addColorStop(1, level.colors.fog);
             ctx.fillStyle = gradFog;
-            ctx.fillRect(0, CANVAS_HEIGHT-100, CANVAS_WIDTH, 100);
+            ctx.fillRect(0, CANVAS_HEIGHT-150, CANVAS_WIDTH, 150);
         }
+    };
 
+    // --- Detail Drawing Functions ---
+
+    const drawParticle = (ctx: CanvasRenderingContext2D, p: Particle) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+        if (p.type === ParticleType.SPARK || p.type === ParticleType.THRUST) {
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
+        } else if (p.type === ParticleType.GLITCH) {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.radius, p.radius);
+        } else {
+            ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
+        }
         ctx.restore();
     };
 
-    // --- Draw Helpers ---
+    const drawEMP = (ctx: CanvasRenderingContext2D, emp: EMPBurst) => {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = "#0ea5e9";
+        ctx.lineWidth = 4;
+        ctx.shadowColor = "#0ea5e9"; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(emp.x, emp.y, emp.radius, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = "rgba(14, 165, 233, 0.1)"; ctx.fill();
+        ctx.restore();
+    };
+
     const drawPlayer = (ctx: CanvasRenderingContext2D, p: Player) => {
         ctx.save(); ctx.translate(p.x + p.width/2, p.y + p.height/2); ctx.rotate(p.angle);
         
+        // Shield Bubble
         if (p.isShielded) {
-            ctx.strokeStyle = "#a855f7"; ctx.lineWidth = 2; ctx.globalAlpha = 0.5 + Math.sin(Date.now()/100)*0.2;
-            ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI*2); ctx.stroke(); ctx.globalAlpha = 1;
+            ctx.strokeStyle = "#a855f7"; ctx.lineWidth = 2; 
+            ctx.shadowColor = "#a855f7"; ctx.shadowBlur = 10;
+            ctx.globalAlpha = 0.5 + Math.sin(Date.now()/100)*0.2;
+            ctx.beginPath(); ctx.arc(0, 0, 55, 0, Math.PI*2); ctx.stroke(); 
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
         }
 
-        // MK-V Sleigh - Detailed Drawing
-        // Chassis
+        // MK-V Sleigh Design
+        // Main Body (Aerodynamic Shell)
         ctx.fillStyle = "#334155"; 
-        ctx.beginPath(); ctx.moveTo(30, 0); ctx.lineTo(-30, -10); ctx.lineTo(-40, 10); ctx.lineTo(20, 15); ctx.fill();
-        
-        // Engine
-        ctx.fillStyle = "#64748b"; ctx.fillRect(-45, -5, 15, 20);
-        // Engine Vent
-        ctx.fillStyle = p.isThrusting ? "#f59e0b" : "#1e293b"; 
-        ctx.fillRect(-48, 0, 5, 10);
-
-        // Cockpit
-        ctx.fillStyle = "#0ea5e9"; ctx.shadowColor = "#0ea5e9"; ctx.shadowBlur = 15;
-        ctx.beginPath(); ctx.ellipse(0, -8, 15, 8, 0, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
-        
-        // Krampus Silhouette
-        ctx.fillStyle = "#000"; 
-        ctx.beginPath(); ctx.arc(0, -8, 5, 0, Math.PI*2); ctx.fill();
-        
-        // Scarf (Red Tatter) - Physics based animation
-        const t = Date.now() / 150;
-        ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 3; ctx.lineCap = 'round';
         ctx.beginPath(); 
-        ctx.moveTo(-5, -10); 
-        ctx.quadraticCurveTo(-20, -15 + Math.sin(t)*5, -35 - (p.vy*2), -10 + Math.cos(t)*5); 
+        ctx.moveTo(35, 5); 
+        ctx.lineTo(-20, -12); // Tail top
+        ctx.lineTo(-40, 0); // Engine mount
+        ctx.lineTo(-20, 15); // Tail bottom
+        ctx.lineTo(35, 5); // Nose
+        ctx.fill();
+
+        // Engine Block
+        ctx.fillStyle = "#475569";
+        ctx.fillRect(-45, -8, 20, 16);
+        // Engine Glow
+        ctx.fillStyle = p.isThrusting ? "#3b82f6" : "#1e293b"; 
+        ctx.shadowColor = p.isThrusting ? "#3b82f6" : "none"; ctx.shadowBlur = p.isThrusting ? 20 : 0;
+        ctx.beginPath(); ctx.ellipse(-48, 0, 4, 10, 0, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Cockpit Canopy
+        ctx.fillStyle = "#0ea5e9"; 
+        ctx.beginPath(); ctx.ellipse(5, -5, 15, 8, -0.2, 0, Math.PI*2); ctx.fill();
+        // Highlight
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
+        ctx.beginPath(); ctx.ellipse(8, -7, 8, 3, -0.2, 0, Math.PI*2); ctx.fill();
+
+        // Krampus Scarf (Dynamic)
+        const t = Date.now() / 150;
+        ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        ctx.beginPath(); 
+        ctx.moveTo(-10, -8); 
+        ctx.quadraticCurveTo(-25, -12 + Math.sin(t)*3, -45 - (p.vy), -8 + Math.cos(t)*3); 
         ctx.stroke();
 
         ctx.restore();
     };
 
-    const drawObstacle = (ctx: CanvasRenderingContext2D, o: Obstacle) => {
-        ctx.save(); ctx.translate(o.x, o.y);
+    const drawObstacle = (ctx: CanvasRenderingContext2D, o: Obstacle, now: number) => {
+        ctx.save(); ctx.translate(o.x + o.width/2, o.y + o.height/2);
         ctx.globalAlpha = o.isDisabled ? 0.3 : 1;
         
         if (o.type === 'DRONE') {
+            // Hover Animation
+            const hover = Math.sin(now * 0.005) * 5;
+            ctx.translate(0, hover);
+            
+            // Central Eye
             ctx.fillStyle = o.isDisabled ? "#22c55e" : "#ef4444";
             ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
-            ctx.beginPath(); ctx.arc(20, 20, 10, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
-            // Rings
-            ctx.strokeStyle = "#475569"; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(20, 20, 18, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            
+            // Armored Shell
+            ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.stroke();
+            
+            // Rotating Props
+            ctx.rotate(now * 0.01);
+            ctx.fillStyle = "#475569";
+            ctx.fillRect(-22, -2, 10, 4); ctx.fillRect(12, -2, 10, 4);
+            ctx.fillRect(-2, -22, 4, 10); ctx.fillRect(-2, 12, 4, 10);
         } else if (o.type === 'SERVER_TOWER') {
-            ctx.fillStyle = "#1e293b"; ctx.fillRect(0,0,o.width,o.height);
-            // Server Rack Lights
-            for(let i=0; i<o.height; i+=20) {
-                 ctx.fillStyle = Math.random() > 0.8 ? "#22c55e" : "#0f172a";
-                 ctx.fillRect(10, i + 10, o.width - 20, 4);
+            const w = o.width; const h = o.height;
+            ctx.translate(-w/2, -h/2);
+            // Main structure
+            ctx.fillStyle = "#1e293b"; ctx.fillRect(0,0,w,h);
+            // Beveled edges
+            ctx.fillStyle = "#334155"; ctx.fillRect(0,0,4,h); ctx.fillRect(w-4,0,4,h);
+            // Blinking Lights
+            for(let i=10; i<h-10; i+=15) {
+                const on = Math.sin(now * 0.01 + i) > 0;
+                ctx.fillStyle = on ? (o.isDisabled ? "#22c55e" : "#f59e0b") : "#0f172a";
+                ctx.fillRect(10, i, w-20, 6);
+            }
+        } else if (o.type === 'ENERGY_BARRIER') {
+            const w = o.width; const h = o.height;
+            ctx.translate(-w/2, -h/2);
+            // Emitters
+            ctx.fillStyle = "#64748b";
+            ctx.fillRect(0, 0, w, 15); ctx.fillRect(0, h-15, w, 15);
+            // Energy Beam
+            if (!o.isDisabled) {
+                ctx.strokeStyle = "#0ea5e9"; ctx.lineWidth = 2;
+                ctx.shadowColor = "#0ea5e9"; ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.moveTo(w/2, 15);
+                for(let i=15; i<h-15; i+=5) {
+                    ctx.lineTo(w/2 + (Math.random()-0.5)*10, i);
+                }
+                ctx.lineTo(w/2, h-15);
+                ctx.stroke(); ctx.shadowBlur = 0;
             }
         } else {
-            // Debris (Jagged Rock)
+            // Debris (Rotating Scrap)
+            ctx.rotate(o.rotation || 0);
             ctx.fillStyle = "#44403c";
-            ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(o.width, 20); ctx.lineTo(20, o.height); ctx.lineTo(0, 30); ctx.fill();
+            ctx.beginPath(); 
+            ctx.moveTo(0, -20); ctx.lineTo(15, 0); ctx.lineTo(5, 20); ctx.lineTo(-15, 10); 
+            ctx.fill();
+            // Rust spots
+            ctx.fillStyle = "#78350f"; 
+            ctx.beginPath(); ctx.arc(5, 5, 3, 0, Math.PI*2); ctx.fill();
         }
         ctx.restore();
     };
@@ -612,48 +738,86 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 8;
             ctx.beginPath(); ctx.arc(0, 0, 120, 0, Math.PI*2); ctx.stroke();
             ctx.shadowBlur = 0;
-            // Inner Spinning Rings
+            // Spinning Elements
             const t = Date.now()/1000;
             ctx.strokeStyle = "#0ea5e9"; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.ellipse(0, 0, 100, 30, t, 0, Math.PI*2); ctx.stroke();
             ctx.beginPath(); ctx.ellipse(0, 0, 100, 30, -t, 0, Math.PI*2); ctx.stroke();
         } else if (lm.type === 'HOLO_TREE') {
-            ctx.strokeStyle = "#22c55e"; ctx.shadowColor = "#22c55e"; ctx.shadowBlur = 15;
-            ctx.lineWidth = 2;
-            // Digital Tree shape
-            ctx.beginPath(); ctx.moveTo(0, 300); ctx.lineTo(60, 200); ctx.lineTo(20, 200); ctx.lineTo(80, 80); ctx.lineTo(0, 0); ctx.stroke();
+            // Digital stylized tree
+            ctx.strokeStyle = "#22c55e"; ctx.shadowColor = "#22c55e"; ctx.shadowBlur = 20;
+            ctx.lineWidth = 3;
+            ctx.beginPath(); 
+            ctx.moveTo(0, 300); ctx.lineTo(0, 250); // Trunk
+            // Branches - Triangles
+            ctx.moveTo(-60, 250); ctx.lineTo(60, 250); ctx.lineTo(0, 150); ctx.lineTo(-60, 250);
+            ctx.moveTo(-50, 150); ctx.lineTo(50, 150); ctx.lineTo(0, 70); ctx.lineTo(-50, 150);
+            ctx.stroke();
             ctx.shadowBlur = 0;
         } else {
-            // Factory
-            ctx.fillStyle = "#27272a"; 
-            ctx.beginPath(); ctx.moveTo(0,300); ctx.lineTo(0,100); ctx.lineTo(50,50); ctx.lineTo(100,100); ctx.lineTo(150,50); ctx.lineTo(200,100); ctx.lineTo(200,300); ctx.fill();
-            // Windows
-            ctx.fillStyle = "#fbbf24"; ctx.globalAlpha = 0.2;
-            ctx.fillRect(20, 150, 30, 50); ctx.fillRect(80, 150, 30, 50);
+            // Factory Silhouette
+            ctx.fillStyle = "#0f172a"; 
+            ctx.beginPath(); 
+            ctx.rect(-100, 100, 200, 200);
+            ctx.fill();
+            // Smokestacks
+            ctx.fillRect(-80, 0, 30, 100); ctx.fillRect(20, 20, 30, 80);
+            // Caution Stripes
+            ctx.fillStyle = "#f59e0b";
+            for(let i=0; i<200; i+=40) ctx.fillRect(-100+i, 110, 20, 10);
         }
         ctx.restore();
     };
 
     const drawPowerup = (ctx: CanvasRenderingContext2D, p: Powerup) => {
         const color = POWERUP_COLORS[p.type];
+        const cx = p.x + p.width/2; 
+        const cy = p.y + p.height/2 + Math.sin(p.floatOffset)*5;
+        
         ctx.save();
+        ctx.translate(cx, cy);
+        
+        // Outer Glow Orb
         ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 15;
-        // Rotating Cube Effect
-        const t = Date.now() / 500;
-        const size = p.width;
-        ctx.translate(p.x + size/2, p.y + size/2);
-        ctx.rotate(t);
-        ctx.fillRect(-size/2, -size/2, size, size);
-        ctx.strokeRect(-size/1.5, -size/1.5, size*1.33, size*1.33);
+        ctx.shadowColor = color; ctx.shadowBlur = 20;
+        ctx.fillStyle = "rgba(255,255,255,0.1)";
+        ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Inner Icon
+        ctx.fillStyle = color;
+        if (p.type === PowerupType.CHARGE) {
+            // Lightning Bolt
+            ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(5, -5); ctx.lineTo(-2, 2); ctx.lineTo(4, 2); ctx.lineTo(-3, 10); ctx.lineTo(0, 2); ctx.lineTo(-6, 2); ctx.fill();
+        } else if (p.type === PowerupType.REPAIR) {
+            // Cross
+            ctx.fillRect(-4, -10, 8, 20); ctx.fillRect(-10, -4, 20, 8);
+        } else if (p.type === PowerupType.SHIELD) {
+            // Shield
+            ctx.beginPath(); ctx.moveTo(0, 10); ctx.quadraticCurveTo(10, 5, 10, -5); ctx.lineTo(-10, -5); ctx.quadraticCurveTo(-10, 5, 0, 10); ctx.fill();
+        } else {
+            // Chip (Overclock)
+            ctx.fillRect(-8, -8, 16, 16);
+            ctx.fillStyle = "#fff"; ctx.fillRect(-4, -4, 8, 8);
+        }
+        
         ctx.restore();
     };
     
     const drawLog = (ctx: CanvasRenderingContext2D, l: DataLog) => {
-        ctx.fillStyle = l.isCoreMemory ? "#f59e0b" : "#94a3b8";
-        ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
-        ctx.fillRect(l.x, l.y, 20, 20);
-        ctx.shadowBlur = 0;
+        const y = l.y + Math.sin(l.floatOffset)*5;
+        ctx.save(); ctx.translate(l.x, y);
+        
+        ctx.shadowColor = l.isCoreMemory ? "#f59e0b" : "#94a3b8"; ctx.shadowBlur = 10;
+        ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0, 30, 20);
+        ctx.strokeStyle = l.isCoreMemory ? "#f59e0b" : "#94a3b8"; ctx.lineWidth = 2; ctx.strokeRect(0,0,30,20);
+        
+        // Text Lines
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.fillRect(5, 5, 20, 2); ctx.fillRect(5, 10, 15, 2); ctx.fillRect(5, 15, 10, 2);
+        
+        ctx.restore();
     };
 
     const checkCollision = (r1: Entity, r2: Entity) => (r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y);
@@ -669,6 +833,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       <UIOverlay {...hudState} currentLevelName={LEVELS[hudState.levelIndex].name} currentLevelSub={LEVELS[hudState.levelIndex].subtext} />
       {/* CRT Vignette */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%)' }}></div>
+      {/* Scanline Overlay */}
+      <div className="absolute inset-0 pointer-events-none opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))', backgroundSize: '100% 2px, 3px 100%' }}></div>
     </div>
   );
 };
