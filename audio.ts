@@ -1,4 +1,5 @@
 
+
 // Audio Engine for Sleigh Ride 2: Brave New World (Tech/Sci-Fi Overhaul)
 
 export class SoundManager {
@@ -26,7 +27,7 @@ export class SoundManager {
       this.endingAudio.preload = 'auto';
 
       const tracks = [
-          { id: 'sector_1', src: './wonderland.mp3' }, // Placeholder for ambience
+          { id: 'sector_1', src: './wonderland.mp3' }, 
           { id: 'sector_2', src: './gray_world.mp3' },
           { id: 'sector_3', src: './ocean_of_silence.mp3' },
           { id: 'sector_4', src: './great_blizzard.mp3' }
@@ -36,7 +37,7 @@ export class SoundManager {
           const audio = new Audio(t.src);
           audio.loop = true;
           audio.volume = 0;
-          audio.playbackRate = 0.8; // Slow down for "ancient/ruined" feel
+          audio.playbackRate = 0.9; 
           audio.preload = 'auto';
           this.bgmTracks.set(t.id, audio);
       });
@@ -53,11 +54,11 @@ export class SoundManager {
     this.ctx = new AudioContextClass();
     
     this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.value = 0.6;
+    this.masterGain.gain.value = 0.5;
     this.masterGain.connect(this.ctx.destination);
 
     this.sfxGain = this.ctx.createGain();
-    this.sfxGain.gain.value = 0.5;
+    this.sfxGain.gain.value = 0.6;
     this.sfxGain.connect(this.masterGain);
 
     this.startEngineLoop();
@@ -127,9 +128,75 @@ export class SoundManager {
       }, stepTime);
   }
 
-  // --- Sci-Fi SFX Generators ---
+  // --- SFX Generators ---
 
-  // 1. Thruster Sound (White Noise Burst)
+  // Laser Shot
+  playLaser() {
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.frequency.setValueAtTime(800, t);
+      osc.frequency.exponentialRampToValueAtTime(100, t + 0.1);
+      osc.type = 'sawtooth';
+
+      gain.gain.setValueAtTime(0.1, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start();
+      osc.stop(t + 0.1);
+  }
+
+  // Explosion
+  playExplosion() {
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+      const bufferSize = this.ctx.sampleRate * 0.5;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1000, t);
+      filter.frequency.exponentialRampToValueAtTime(100, t + 0.4);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGain);
+      noise.start();
+  }
+
+  // Dash Sound
+  playDash() {
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.frequency.setValueAtTime(200, t);
+      osc.frequency.linearRampToValueAtTime(800, t + 0.3);
+      osc.type = 'triangle';
+
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.linearRampToValueAtTime(0, t + 0.3);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start();
+      osc.stop(t + 0.3);
+  }
+
   playThruster() {
     if (!this.ctx || !this.sfxGain) return;
     const bufferSize = this.ctx.sampleRate * 0.1;
@@ -154,12 +221,10 @@ export class SoundManager {
     noise.start();
   }
 
-  // 2. EMP Blast (Low Frequency Sweep + Static)
   playEMP() {
     if (!this.ctx || !this.sfxGain) return;
     const t = this.ctx.currentTime;
     
-    // Bass Drop
     const osc = this.ctx.createOscillator();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(150, t);
@@ -169,7 +234,6 @@ export class SoundManager {
     gain.gain.setValueAtTime(0.5, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
 
-    // High Pitch Zap
     const osc2 = this.ctx.createOscillator();
     osc2.type = 'square';
     osc2.frequency.setValueAtTime(2000, t);
@@ -185,18 +249,16 @@ export class SoundManager {
     osc2.start(); osc2.stop(t + 0.3);
   }
 
-  // 3. Hull Damage (Metallic Crunch)
   playDamage() {
     if (!this.ctx || !this.sfxGain) return;
     const t = this.ctx.currentTime;
     
-    // FM Synthesis for "Metallic" sound
     const carrier = this.ctx.createOscillator();
     const modulator = this.ctx.createOscillator();
     const modGain = this.ctx.createGain();
     
     carrier.frequency.value = 100;
-    modulator.frequency.value = 250; // Ratio 2.5:1 for dissonance
+    modulator.frequency.value = 250; 
     modGain.gain.setValueAtTime(500, t);
     modGain.gain.exponentialRampToValueAtTime(1, t + 0.4);
     
@@ -214,14 +276,12 @@ export class SoundManager {
     carrier.stop(t + 0.4); modulator.stop(t + 0.4);
   }
 
-  // 4. Data Collection (Digital Chime)
   playCollectData() {
     if (!this.ctx || !this.sfxGain) return;
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     osc.type = 'sine';
     
-    // Arpeggio
     osc.frequency.setValueAtTime(880, t);
     osc.frequency.setValueAtTime(1760, t + 0.05);
     
@@ -234,7 +294,6 @@ export class SoundManager {
     osc.start(); osc.stop(t + 0.15);
   }
 
-  // 5. Low Warning
   playLowEnergy() {
     if (!this.ctx || !this.sfxGain) return;
     const t = this.ctx.currentTime;
@@ -251,18 +310,16 @@ export class SoundManager {
     osc.start(); osc.stop(t + 0.1);
   }
 
-  // --- Engine Loop (Shepard-like Tone) ---
+  // --- Engine Loop ---
   private startEngineLoop() {
     if (!this.ctx || !this.sfxGain) return;
     
-    // Carrier
     this.engineOsc = this.ctx.createOscillator();
     this.engineOsc.type = 'sawtooth';
     this.engineOsc.frequency.value = 50; 
 
-    // LFO for "Thrum"
     this.engineMod = this.ctx.createOscillator();
-    this.engineMod.frequency.value = 10; // 10Hz rumble
+    this.engineMod.frequency.value = 10; 
     
     const modGain = this.ctx.createGain();
     modGain.gain.value = 10;
@@ -271,7 +328,7 @@ export class SoundManager {
     modGain.connect(this.engineOsc.frequency);
 
     this.engineGain = this.ctx.createGain();
-    this.engineGain.gain.value = 0; // Start silent
+    this.engineGain.gain.value = 0; 
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
@@ -287,9 +344,8 @@ export class SoundManager {
 
   setEnginePitch(intensity: number) {
     if (this.ctx && this.engineOsc && this.engineGain && this.engineMod) {
-      // Intensity 0 to 1
-      const pitch = 50 + (intensity * 100); // 50Hz to 150Hz
-      const rumble = 10 + (intensity * 20); // Faster rumble
+      const pitch = 50 + (intensity * 100); 
+      const rumble = 10 + (intensity * 20); 
       const vol = 0.1 + (intensity * 0.15);
 
       const t = this.ctx.currentTime;

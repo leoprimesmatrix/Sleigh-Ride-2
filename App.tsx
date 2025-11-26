@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import GameCanvas from './components/GameCanvas.tsx';
 import VictorySequence from './components/VictorySequence.tsx';
 import { GameState, GameMode, DebugCommand } from './types.ts';
-import { Terminal, Cpu, Power, ShieldAlert, Radio, Database, XCircle, Lock, FastForward, Eye, Zap, Gauge } from 'lucide-react';
+import { Terminal, Cpu, Power, ShieldAlert, Radio, Database, XCircle, Lock, FastForward, Eye, Zap, Gauge, Crosshair } from 'lucide-react';
 import { soundManager } from './audio.ts';
 
 const App: React.FC = () => {
@@ -29,18 +29,15 @@ const App: React.FC = () => {
   }, [gameState]);
 
   const handleStart = () => {
-      // Initialize audio context on user gesture
       soundManager.init();
-      
       setGameMode(GameMode.STORY);
       setIsLoading(true);
       
-      // Simulate Boot Sequence
       const logs = [
           "INITIALIZING KERNEL...",
           "MOUNTING FILE SYSTEM...",
-          "CHECKING MEMORY INTEGRITY... OK",
           "LOADING PHYSICS ENGINE... OK",
+          "WEAPONS FREE... OK",
           "CONNECTING TO NEURAL NET...",
           "DECRYPTING MISSION FILES...",
           "TARGET LOCKED: NORTH POLE",
@@ -64,7 +61,6 @@ const App: React.FC = () => {
 
   const restart = () => setGameState(GameState.MENU);
 
-  // --- Debug Logic ---
   const handleSecretClick = () => {
       if (isDebugUnlocked) {
           setShowDebugMenu(true);
@@ -73,7 +69,6 @@ const App: React.FC = () => {
       const newCount = debugClicks + 1;
       setDebugClicks(newCount);
       if (newCount === 5) {
-          // Direct unlock without password
           setIsDebugUnlocked(true);
           setShowDebugMenu(true);
           setDebugClicks(0);
@@ -82,7 +77,6 @@ const App: React.FC = () => {
 
   const sendDebugCommand = (cmd: DebugCommand) => {
       setDebugCommand(cmd);
-      // Don't close menu immediately for buttons that can be clicked multiple times
       if (cmd === 'SKIP_TO_ENDING') setShowDebugMenu(false);
       
       if (gameState !== GameState.PLAYING && cmd === 'SKIP_TO_ENDING') {
@@ -93,16 +87,10 @@ const App: React.FC = () => {
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#00020a] flex flex-col items-center justify-center font-mono text-cyan-50 relative select-none">
       
-      {/* CRT Scanline Overlay */}
       <div className="absolute inset-0 scanlines z-50 pointer-events-none opacity-30"></div>
-      
-      {/* Moving Holographic Grid */}
       <div className="absolute inset-0 holo-grid opacity-20 pointer-events-none transform perspective-3d rotate-x-60"></div>
-
-      {/* Vignette */}
       <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(circle, transparent 50%, rgba(0,2,10,0.95) 100%)' }}></div>
 
-      {/* Floating System Deco - SECRET TRIGGER */}
       <div className="absolute top-4 left-4 text-[10px] text-cyan-900 flex flex-col gap-1 z-50 cursor-pointer hover:text-cyan-400 transition-colors" onClick={handleSecretClick}>
           <div>SYS_ID: 0x94F2A</div>
           <div>MEM_FREE: 4092TB</div>
@@ -114,7 +102,6 @@ const App: React.FC = () => {
           <div>LOC: UNKNOWN</div>
       </div>
 
-      {/* Debug Menu Overlay */}
       {showDebugMenu && (
           <div className="absolute top-20 left-20 z-[90] bg-[#000510]/95 border border-cyan-500 p-4 w-72 shadow-[0_0_30px_rgba(0,243,255,0.2)] backdrop-blur-md">
                <div className="flex justify-between items-center mb-4 border-b border-cyan-900 pb-2">
@@ -141,7 +128,6 @@ const App: React.FC = () => {
       {gameState === GameState.MENU && !isLoading && (
         <div className="z-20 text-center flex flex-col items-center gap-8 relative w-full px-4">
             
-            {/* Title Block */}
             <div className="relative mb-8 w-full max-w-4xl">
                 <div className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-white tracking-tighter glitch-wrapper whitespace-nowrap" style={{ fontFamily: 'Orbitron' }}>
                     <span className="glitch absolute inset-0" data-text="SLEIGH RIDE 2">SLEIGH RIDE 2</span>
@@ -156,9 +142,7 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            {/* Main Menu Panel */}
             <div className="w-full max-w-md bg-[#000510]/80 border border-cyan-900 backdrop-blur-md p-1 relative group shadow-[0_0_50px_rgba(0,243,255,0.15)]">
-                {/* Corner Accents */}
                 <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-cyan-500"/>
                 <div className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-cyan-500"/>
                 <div className="absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 border-cyan-500"/>
@@ -168,7 +152,7 @@ const App: React.FC = () => {
                     <div className="text-left text-xs text-cyan-700 font-mono mb-4">
                         <p>> YEAR: 2941 AD</p>
                         <p>> UNIT: KRAMPUS-7</p>
-                        <p>> OBJECTIVE: RECOVER LEGACY DATA</p>
+                        <p>> MISSION: COMBAT RUN</p>
                         <p>> <span className="animate-pulse">_</span></p>
                     </div>
 
@@ -176,7 +160,7 @@ const App: React.FC = () => {
                         <div className="absolute inset-0 w-full h-full bg-cyan-500/10 scale-x-0 group-hover/btn:scale-x-100 transition-transform origin-left duration-300"></div>
                         <div className="flex items-center justify-center gap-3 relative z-10">
                             <Power className="text-cyan-500 group-hover/btn:text-white transition-colors" size={20} />
-                            <span className="text-lg tracking-[0.2em] group-hover/btn:text-white transition-colors font-bold">ENGAGE SYSTEM</span>
+                            <span className="text-lg tracking-[0.2em] group-hover/btn:text-white transition-colors font-bold">ENGAGE</span>
                         </div>
                     </button>
 
@@ -190,12 +174,12 @@ const App: React.FC = () => {
                     
                     <div className="grid grid-cols-2 gap-2 mt-4">
                         <div className="bg-slate-900/50 border border-slate-800 p-2 text-xs text-slate-500 text-center hover:border-cyan-500/30 transition-colors">
-                            <span className="text-cyan-600 font-bold block mb-1">CONTROLS</span>
-                            [SPACE] THRUST
+                            <span className="text-cyan-600 font-bold block mb-1">ASSAULT</span>
+                            AUTO-FIRE ACTIVE
                         </div>
                          <div className="bg-slate-900/50 border border-slate-800 p-2 text-xs text-slate-500 text-center hover:border-cyan-500/30 transition-colors">
-                            <span className="text-cyan-600 font-bold block mb-1">ABILITY</span>
-                            [Z] EMP BLAST
+                            <span className="text-cyan-600 font-bold block mb-1">PHASE DASH</span>
+                            [SHIFT] / [Z]
                         </div>
                     </div>
                 </div>
@@ -205,7 +189,6 @@ const App: React.FC = () => {
 
       {gameState === GameState.INFO && (
           <div className="z-30 w-full max-w-4xl h-[80vh] bg-[#000510]/95 border border-cyan-900 backdrop-blur-md p-6 relative flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-             {/* Header */}
              <div className="flex items-center justify-between border-b border-cyan-900/50 pb-4 mb-4">
                  <div className="flex items-center gap-4">
                      <Database className="text-yellow-500 animate-pulse" size={24} />
@@ -217,80 +200,43 @@ const App: React.FC = () => {
              </div>
 
              <div className="flex-1 overflow-y-auto grid md:grid-cols-2 gap-6 pr-2 custom-scrollbar">
-                 {/* Enemies */}
                  <div className="space-y-6">
-                     <h3 className="text-cyan-500 border-b border-cyan-900 pb-1 text-sm tracking-widest uppercase mb-4">Hostile Units</h3>
+                     <h3 className="text-cyan-500 border-b border-cyan-900 pb-1 text-sm tracking-widest uppercase mb-4">Combat Systems</h3>
                      
-                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-red-500/50 transition-colors">
-                         <div className="w-12 h-12 rounded-full border-2 border-red-500 flex items-center justify-center bg-red-900/20 shrink-0">
-                             <div className="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-cyan-500/50 transition-colors">
+                         <div className="w-12 h-12 rounded-full border border-cyan-500 flex items-center justify-center bg-cyan-900/20 shrink-0">
+                             <Crosshair size={20} className="text-cyan-400" />
                          </div>
                          <div>
-                             <h4 className="text-white font-bold text-sm">SENTINEL DRONE</h4>
-                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Automated hunter units. They patrol the network seeking biological life signs. Contact causes severe hull damage.</p>
+                             <h4 className="text-white font-bold text-sm">AUTO-CANNON</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Standard issue plasma repeater. Fires automatically. Overclock powerups increase fire rate.</p>
                          </div>
                      </div>
 
-                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-yellow-500/50 transition-colors">
-                         <div className="w-12 h-12 border-2 border-yellow-500 flex items-center justify-center bg-yellow-900/20 shrink-0">
-                             <div className="w-1 h-8 bg-yellow-500"></div>
+                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-fuchsia-500/50 transition-colors">
+                         <div className="w-12 h-12 border border-fuchsia-500 flex items-center justify-center bg-fuchsia-900/20 shrink-0">
+                             <Zap size={20} className="text-fuchsia-400" />
                          </div>
                          <div>
-                             <h4 className="text-white font-bold text-sm">SERVER MONOLITH</h4>
-                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Ancient data towers. Indestructible. Navigate around them. Some emit active cooling vents.</p>
-                         </div>
-                     </div>
-
-                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-blue-500/50 transition-colors">
-                         <div className="w-12 h-12 border-2 border-blue-500 flex items-center justify-center bg-blue-900/20 shrink-0">
-                             <div className="w-8 h-1 bg-blue-500 shadow-[0_0_10px_#3b82f6]"></div>
-                         </div>
-                         <div>
-                             <h4 className="text-white font-bold text-sm">ENERGY BARRIER</h4>
-                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">High-voltage arcs. Can be disabled temporarily with an EMP blast.</p>
+                             <h4 className="text-white font-bold text-sm">PHASE DASH [SHIFT]</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Consumes DASH energy to surge forward. <span className="text-fuchsia-400">Invulnerable</span> while dashing. Destroys all obstacles on contact.</p>
                          </div>
                      </div>
                  </div>
 
-                 {/* Powerups */}
                  <div className="space-y-6">
-                     <h3 className="text-emerald-500 border-b border-emerald-900 pb-1 text-sm tracking-widest uppercase mb-4">Resources</h3>
+                     <h3 className="text-red-500 border-b border-red-900 pb-1 text-sm tracking-widest uppercase mb-4">Threats</h3>
 
                      <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
-                         <div className="w-12 h-12 rounded-full border border-cyan-500 flex items-center justify-center bg-cyan-900/20 shrink-0 text-cyan-400">
-                             <Power size={20} />
+                         <div className="w-12 h-12 rounded-full border border-red-500 flex items-center justify-center bg-red-900/20 shrink-0">
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
                          </div>
                          <div>
-                             <h4 className="text-cyan-400 font-bold text-sm">ENERGY CELL</h4>
-                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Restores capacitor charge. Required for EMP Blasts.</p>
-                         </div>
-                     </div>
-
-                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
-                         <div className="w-12 h-12 rounded-full border border-emerald-500 flex items-center justify-center bg-emerald-900/20 shrink-0 text-emerald-400">
-                             <div className="text-xl font-bold">+</div>
-                         </div>
-                         <div>
-                             <h4 className="text-emerald-400 font-bold text-sm">NANOBOT REPAIR</h4>
-                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Repairs hull integrity by 30%. Critical for survival.</p>
-                         </div>
-                     </div>
-                     
-                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
-                        <div className="w-12 h-12 rounded-full border border-fuchsia-500 flex items-center justify-center bg-fuchsia-900/20 shrink-0 text-fuchsia-400">
-                             <ShieldAlert size={20} />
-                         </div>
-                         <div>
-                             <h4 className="text-fuchsia-400 font-bold text-sm">PHASE SHIELD</h4>
-                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Provides temporary invulnerability to all damage sources.</p>
+                             <h4 className="text-red-400 font-bold text-sm">HUNTER KILLER</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Tracks player vertical movement and fires tracking shots. Prioritize destruction.</p>
                          </div>
                      </div>
                  </div>
-             </div>
-             
-             <div className="mt-4 pt-4 border-t border-cyan-900/50 text-xs text-slate-500 flex justify-between">
-                 <span>DATABASE VER: 2.1.0</span>
-                 <span>ACCESS LEVEL: RESTRICTED</span>
              </div>
           </div>
       )}
@@ -329,7 +275,6 @@ const App: React.FC = () => {
               onDebugCommandHandled={() => setDebugCommand(null)}
             />
             
-            {/* Debug Indicator */}
             {isDebugUnlocked && (
               <div className="absolute top-2 left-2 flex gap-2 z-50">
                   <div className="text-[10px] text-green-500 border border-green-800 px-2 py-1 bg-black/80">

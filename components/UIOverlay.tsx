@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Battery, Zap, Shield, AlertTriangle, Database, Activity } from 'lucide-react';
+import { Battery, Zap, Shield, AlertTriangle, Database, Activity, Crosshair } from 'lucide-react';
 import { DialogueLine } from '../types.ts';
 
 interface UIOverlayProps {
@@ -15,11 +15,12 @@ interface UIOverlayProps {
   activeLog: string | null;
   isShielded: boolean;
   hyperMode?: boolean;
+  combo: number;
 }
 
 const UIOverlay: React.FC<UIOverlayProps> = ({
   integrity, energy, progress, timeLeft, currentLevelName, currentLevelSub,
-  score, activeDialogue, activeLog, isShielded, hyperMode
+  score, activeDialogue, activeLog, isShielded, hyperMode, combo
 }) => {
   
   const formatTime = (s: number) => {
@@ -28,7 +29,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col justify-between p-6 z-20 font-mono text-cyan-400 select-none">
+    <div className="absolute inset-0 flex flex-col justify-between p-6 z-20 font-mono text-cyan-400 select-none pointer-events-none">
       
       {/* Top HUD */}
       <div className="flex justify-between items-start w-full border-b border-cyan-500/30 pb-2 bg-gradient-to-b from-[#000510] to-transparent backdrop-blur-sm">
@@ -46,29 +47,42 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
 
             {/* Energy */}
             <div className="flex items-center gap-2">
-                <Zap size={16} className={energy < 20 ? "text-yellow-500" : "text-cyan-400"} />
+                <Zap size={16} className={energy < 30 ? "text-yellow-500 animate-pulse" : "text-cyan-400"} />
                 <div className="w-full h-2 bg-black rounded-sm overflow-hidden border border-cyan-900 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
                     <div className="h-full bg-cyan-400 transition-all duration-100 shadow-[0_0_10px_#00f3ff]" style={{width: `${energy}%`}} />
                 </div>
-                <span className="text-xs tracking-wider">PWR</span>
+                <span className="text-xs tracking-wider">DASH</span>
             </div>
          </div>
 
-         {/* Center: Timer & Status */}
+         {/* Center: Combo Meter & Status */}
          <div className="flex flex-col items-center">
-             <div className="text-3xl font-bold tracking-widest text-white drop-shadow-[0_0_10px_rgba(0,243,255,0.8)]">
-                 {formatTime(timeLeft)}
+             <div className="flex flex-col items-center">
+                 {combo > 1 && (
+                     <div className="animate-bounce">
+                         <span className="text-4xl font-black italic text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]">
+                             {combo}x
+                         </span>
+                         <span className="text-xs text-yellow-200 block text-center tracking-[0.3em]">SYNC RATE</span>
+                     </div>
+                 )}
+                 {combo <= 1 && (
+                     <div className="text-3xl font-bold tracking-widest text-slate-700 drop-shadow-[0_0_10px_rgba(0,243,255,0.1)]">
+                         SYNC
+                     </div>
+                 )}
              </div>
-             <div className="flex gap-2">
-               {isShielded && <div className="text-[10px] text-fuchsia-400 border border-fuchsia-500 px-2 rounded animate-pulse shadow-[0_0_10px_#d946ef]">SHIELD ACTIVE</div>}
+             
+             <div className="flex gap-2 mt-2">
+               {isShielded && <div className="text-[10px] text-fuchsia-400 border border-fuchsia-500 px-2 rounded animate-pulse shadow-[0_0_10px_#d946ef]">PHASE SHIFT</div>}
                {hyperMode && <div className="text-[10px] text-yellow-400 border border-yellow-500 px-2 rounded animate-pulse shadow-[0_0_10px_#facc15]">HYPER_VELOCITY</div>}
              </div>
          </div>
 
          {/* Right: Score */}
          <div className="text-right">
-             <div className="text-xs text-cyan-600 tracking-widest">ARCHIVE_DATA</div>
-             <div className="text-xl text-yellow-400 font-bold drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">{score.toFixed(0)}</div>
+             <div className="text-xs text-cyan-600 tracking-widest">DATA_HARVEST</div>
+             <div className="text-xl text-white font-bold drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">{score.toFixed(0)}</div>
          </div>
       </div>
 
@@ -83,6 +97,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
               </div>
           </div>
       )}
+
+      {/* Crosshair Overlay (Visual Only) */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+          <Crosshair size={200} className="text-cyan-500 animate-[spin_10s_linear_infinite]" />
+      </div>
 
       {/* Bottom Dialogue (Terminal Style) */}
       {activeDialogue && (
@@ -107,7 +126,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           </div>
           
           <div className="flex flex-col items-end gap-1 w-1/3">
-              <span className="text-cyan-600">Mission Progress</span>
+              <span className="text-cyan-600">Distance to Source</span>
               <div className="w-full h-1 bg-black border border-cyan-900">
                   <div className="h-full bg-white transition-all duration-500 shadow-[0_0_10px_#fff]" style={{width: `${Math.min(100, progress)}%`}} />
               </div>

@@ -1,12 +1,13 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { 
-  GameState, Player, Obstacle, Powerup, DataLog, EMPBurst, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark, DebugCommand
+  GameState, Player, Obstacle, Powerup, DataLog, EMPBurst, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark, DebugCommand, Projectile, ScorePopup
 } from '../types.ts';
 import { 
   CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, THRUST_POWER, MAX_FALL_SPEED, BASE_SPEED, 
   LEVELS, LEVEL_THRESHOLDS, POWERUP_COLORS, TOTAL_GAME_TIME_SECONDS, VICTORY_DISTANCE, 
-  EMP_COST, EMP_RADIUS, ENERGY_RECHARGE_RATE,
+  EMP_COST, EMP_RADIUS, ENERGY_RECHARGE_RATE, DASH_COST, DASH_DURATION, DASH_SPEED_MULT,
+  PROJECTILE_SPEED, ENEMY_PROJECTILE_SPEED, FIRE_RATE_DEFAULT, FIRE_RATE_OVERCLOCK, COMBO_DECAY,
   DATA_LOGS, NARRATIVE_FRAGMENTS, STORY_MOMENTS, LANDMARKS
 } from '../constants.ts';
 import UIOverlay from './UIOverlay.tsx';
@@ -28,20 +29,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const playerRef = useRef<Player>({
     id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false,
     vy: 0, integrity: 100, energy: 100, maxEnergy: 100,
-    isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false, godMode: false
+    isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false, 
+    isDashing: false, dashTimer: 0, godMode: false,
+    weaponCooldown: 0, combo: 1, comboTimer: 0
   });
   
   const obstaclesRef = useRef<Obstacle[]>([]);
+  const projectilesRef = useRef<Projectile[]>([]);
   const powerupsRef = useRef<Powerup[]>([]);
   const logsRef = useRef<DataLog[]>([]);
   const landmarksRef = useRef<Landmark[]>([]);
   const empsRef = useRef<EMPBurst[]>([]); 
   const particlesRef = useRef<Particle[]>([]);
+  const scorePopupsRef = useRef<ScorePopup[]>([]);
   
   // Visuals
   const starsRef = useRef<{x:number, y:number, size:number, opacity:number, blinkSpeed: number}[]>([]); 
-  
-  // Background layers
   const bgLayersRef = useRef<BackgroundLayer[]>([
     { points: [], color: '#0f172a', speedModifier: 0.05, offset: 0 }, 
     { points: [], color: '#1e293b', speedModifier: 0.2, offset: 0 },  
@@ -71,7 +74,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
   const [hudState, setHudState] = useState({
     integrity: 100, energy: 100, progress: 0, timeLeft: TOTAL_GAME_TIME_SECONDS, 
-    levelIndex: 0, score: 0,
+    levelIndex: 0, score: 0, combo: 1,
     activeDialogue: null as DialogueLine | null, activeLog: null as string | null,
     isShielded: false,
     hyperMode: false
@@ -82,11 +85,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     if (!debugCommand) return;
     
     if (debugCommand === 'SKIP_TO_ENDING') {
-      // FIX: Ensure we warp exactly to the ending sequence trigger point.
-      // Set distance to 96% to trigger the condition in update()
       distanceRef.current = VICTORY_DISTANCE * 0.96; 
-      
-      // Clear obstacles
       obstaclesRef.current = [];
       scoreRef.current += 5000;
       createParticles(playerRef.current.x, playerRef.current.y, ParticleType.GLITCH, 50, '#00ff00');
@@ -111,7 +110,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
   const createParticles = (x:number, y:number, type:ParticleType, count:number, color:string) => {
     for(let i=0; i<count; i++) {
-        const speed = type === ParticleType.THRUST ? 4 : 8;
+        const speed = type === ParticleType.THRUST ? 4 : (type === ParticleType.EXPLOSION ? 10 : 6);
         particlesRef.current.push({ 
             id:Math.random(), 
             type, 
@@ -128,6 +127,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     }
   };
 
+  const createScorePopup = (x: number, y: number, value: number, text: string) => {
+     scorePopupsRef.current.push({
+         id: Math.random(), x, y, value, text, life: 1.0, color: '#facc15'
+     });
+  };
+
   const triggerEMP = () => {
       if (playerRef.current.godMode || playerRef.current.energy >= EMP_COST) {
           if (!playerRef.current.godMode) playerRef.current.energy -= EMP_COST;
@@ -138,8 +143,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           });
           shakeRef.current = 15;
           createParticles(playerRef.current.x + 40, playerRef.current.y + 20, ParticleType.GLITCH, 20, '#00f3ff');
+          
+          // EMP also clears projectiles
+          projectilesRef.current.filter(p => p.isEnemy).forEach(p => {
+              p.markedForDeletion = true;
+              createParticles(p.x, p.y, ParticleType.SPARK, 5, '#ff0000');
+          });
+
       } else {
           soundManager.playLowEnergy();
+      }
+  };
+
+  const triggerDash = () => {
+      const p = playerRef.current;
+      if (!p.isDashing && (p.energy >= DASH_COST || p.godMode)) {
+          if (!p.godMode) p.energy -= DASH_COST;
+          p.isDashing = true;
+          p.dashTimer = DASH_DURATION;
+          p.vy = 0; // Cancel vertical momentum
+          soundManager.playDash();
+          shakeRef.current = 5;
+          createParticles(p.x, p.y + p.height/2, ParticleType.THRUST, 20, '#00f3ff');
       }
   };
 
@@ -151,8 +176,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (gameState === GameState.MENU) soundManager.init();
       pressedKeysRef.current.add(e.code);
       
-      if (gameState === GameState.PLAYING && (e.code === 'KeyZ' || e.code === 'Enter')) {
-        triggerEMP();
+      if (gameState === GameState.PLAYING) {
+        if (e.code === 'KeyX' || e.code === 'Enter') triggerEMP();
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyZ') triggerDash();
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -161,8 +187,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     const handleTouchStart = (e: TouchEvent) => {
        if (gameState === GameState.MENU) soundManager.init();
        const touchX = e.touches[0].clientX;
-       if (touchX < window.innerWidth / 2) pressedKeysRef.current.add('Space');
-       else triggerEMP();
+       if (touchX > window.innerWidth * 0.7) triggerDash();
+       else if (touchX < window.innerWidth * 0.3) triggerEMP();
+       else pressedKeysRef.current.add('Space');
     };
     const handleTouchEnd = () => {
        pressedKeysRef.current.delete('Space');
@@ -219,8 +246,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     if (!ctx) return;
 
     const resetGame = () => {
-      playerRef.current = { id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false, vy: 0, integrity: 100, energy: 100, maxEnergy: 100, isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false, godMode: false };
-      obstaclesRef.current = []; powerupsRef.current = []; logsRef.current = []; landmarksRef.current = []; empsRef.current = []; particlesRef.current = [];
+      playerRef.current = { 
+          id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false, vy: 0, integrity: 100, energy: 100, maxEnergy: 100, 
+          isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false, isDashing: false, dashTimer: 0, godMode: false,
+          weaponCooldown: 0, combo: 1, comboTimer: 0
+      };
+      obstaclesRef.current = []; powerupsRef.current = []; logsRef.current = []; landmarksRef.current = []; empsRef.current = []; particlesRef.current = []; projectilesRef.current = []; scorePopupsRef.current = [];
       distanceRef.current = 0; scoreRef.current = 0; timeRef.current = TOTAL_GAME_TIME_SECONDS;
       triggeredEventsRef.current.clear(); isEndingSequenceRef.current = false; endingTimerRef.current = 0;
       lastLevelIndexRef.current = 0;
@@ -252,32 +283,64 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
       // 1. Inputs & Physics
       if (!isEndingSequenceRef.current) {
-          if (pressedKeysRef.current.has('Space') || pressedKeysRef.current.has('ArrowUp')) {
-              player.vy += THRUST_POWER * timeScale; 
-              player.isThrusting = true;
-              createParticles(player.x - 10, player.y + 15, ParticleType.THRUST, 1, '#00f3ff'); 
+          if (player.isDashing) {
+              // Dash Physics: Lock Y, Move Forward Visually (World moves faster)
+              player.dashTimer -= dt;
+              if (player.dashTimer <= 0) {
+                  player.isDashing = false;
+                  player.vy = 0;
+              }
           } else {
-              player.isThrusting = false;
+              // Normal Physics
+              if (pressedKeysRef.current.has('Space') || pressedKeysRef.current.has('ArrowUp')) {
+                  player.vy += THRUST_POWER * timeScale; 
+                  player.isThrusting = true;
+                  createParticles(player.x - 10, player.y + 15, ParticleType.THRUST, 1, '#00f3ff'); 
+              } else {
+                  player.isThrusting = false;
+              }
+              player.vy += GRAVITY * timeScale;
+              player.vy = Math.min(player.vy, MAX_FALL_SPEED);
+              player.y += player.vy * timeScale;
           }
-          player.vy += GRAVITY * timeScale;
-          player.vy = Math.min(player.vy, MAX_FALL_SPEED);
-          player.y += player.vy * timeScale;
           
-          const targetAngle = player.vy * 0.05;
+          const targetAngle = player.isDashing ? 0 : player.vy * 0.05;
           player.angle += (targetAngle - player.angle) * 0.1 * timeScale;
 
+          // Bounds
           if (player.y < 0) { player.y = 0; player.vy = 0; }
           if (player.y > CANVAS_HEIGHT - 60) { player.y = CANVAS_HEIGHT - 60; player.vy = 0; }
+
+          // Auto-Fire
+          if (player.weaponCooldown > 0) player.weaponCooldown -= timeScale;
+          else if (!player.isDashing) { // Cannot shoot while dashing
+             const rate = player.overclockTimer > 0 ? FIRE_RATE_OVERCLOCK : FIRE_RATE_DEFAULT;
+             player.weaponCooldown = rate;
+             projectilesRef.current.push({
+                 id: Math.random(), x: player.x + 80, y: player.y + 15, width: 20, height: 4, 
+                 markedForDeletion: false, vx: PROJECTILE_SPEED, vy: 0, isEnemy: false, damage: 10, color: '#00f3ff'
+             });
+             soundManager.playLaser();
+          }
+      }
+
+      // Combo Decay
+      if (player.combo > 1) {
+          player.comboTimer -= dt;
+          if (player.comboTimer <= 0) {
+              player.combo = 1; // Reset
+          }
       }
 
       // 2. Progression
-      const speedMult = (player.overclockTimer > 0 ? 1.5 : 1.0) * speedMultiplierRef.current;
+      const speedMult = (player.overclockTimer > 0 ? 1.2 : 1.0) * speedMultiplierRef.current;
+      let dashMult = player.isDashing ? DASH_SPEED_MULT : 1.0;
       let progressRatio = distanceRef.current / VICTORY_DISTANCE;
       if (gameMode === GameMode.STORY) progressRatio = Math.min(1.02, progressRatio);
 
-      const currentSpeed = isEndingSequenceRef.current ? BASE_SPEED * 0.5 : BASE_SPEED * speedMult;
+      const currentSpeed = isEndingSequenceRef.current ? BASE_SPEED * 0.5 : BASE_SPEED * speedMult * dashMult;
       
-      soundManager.setEnginePitch(player.isThrusting ? 0.8 : 0.2);
+      soundManager.setEnginePitch(player.isThrusting || player.isDashing ? 0.8 : 0.2);
 
       let levelIndex = 0;
       const progressPercent = progressRatio * 100;
@@ -289,14 +352,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
       const level = LEVELS[levelIndex] || LEVELS[0];
 
-      // Ending Logic Fix: Ensure consistent triggering
       if (gameMode === GameMode.STORY && progressRatio >= 0.96 && !isEndingSequenceRef.current) {
           isEndingSequenceRef.current = true;
           player.isShielded = true;
           soundManager.playEndingMusic();
 
-          // Force spawn Chronos Ring immediately to prevent softlock/freeze
-          // If the player skipped to here, the ring might not have been added by the standard "LANDMARKS" check.
           const ringExists = landmarksRef.current.some(l => l.type === 'CHRONOS_RING');
           if (!ringExists) {
              landmarksRef.current.push({
@@ -308,48 +368,53 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
 
       if (isEndingSequenceRef.current) {
-          // Auto-pilot center
           player.y += (CANVAS_HEIGHT/2 - player.y) * 0.05 * timeScale;
           endingTimerRef.current += dt;
-          
-          // Victory Trigger
-          // Check if ring has passed the player (x < 300)
           if (endingTimerRef.current > 2.0 && landmarksRef.current.some(l => l.type === 'CHRONOS_RING' && l.x < 400)) {
                setGameState(GameState.VICTORY); onWin();
           }
       } else {
-          // Standard Progression
           const distanceGain = currentSpeed * timeScale * progressMultiplierRef.current;
           distanceRef.current += distanceGain;
-          scoreRef.current += distanceGain * 0.1;
+          scoreRef.current += distanceGain * 0.1 * player.combo;
           timeRef.current -= dt;
       }
 
       // 3. Spawning
       if (!isEndingSequenceRef.current) {
-          if (Math.random() < 0.015 * level.spawnRate * timeScale && levelIndex !== 4) {
-              const types: Obstacle['type'][] = ['DEBRIS', 'DRONE', 'SERVER_TOWER', 'ENERGY_BARRIER'];
+          // Obstacles
+          if (Math.random() < 0.02 * level.spawnRate * timeScale && levelIndex !== 4) {
+              const types: Obstacle['type'][] = ['DEBRIS', 'DRONE', 'SERVER_TOWER', 'ENERGY_BARRIER', 'HUNTER'];
               let type = types[0];
               const r = Math.random();
               if (r < 0.3) type = 'DEBRIS';
-              else if (r < 0.6) type = 'DRONE';
-              else if (r < 0.85) type = 'ENERGY_BARRIER';
-              else type = 'SERVER_TOWER';
+              else if (r < 0.55) type = 'DRONE';
+              else if (r < 0.75) type = 'ENERGY_BARRIER';
+              else if (r < 0.9) type = 'SERVER_TOWER';
+              else type = 'HUNTER';
 
               let y = Math.random() * (CANVAS_HEIGHT - 100);
               let w = 40; let h = 40;
+              let hp = 10;
+              let score = 100;
+              let canShoot = false;
               
               if (type === 'SERVER_TOWER') {
-                  y = CANVAS_HEIGHT - 200; w = 60; h = 200;
+                  y = CANVAS_HEIGHT - 200; w = 60; h = 200; hp = 50; score = 500;
               } else if (type === 'ENERGY_BARRIER') {
-                  h = 150; y = Math.random() * (CANVAS_HEIGHT - h); w = 30;
+                  h = 150; y = Math.random() * (CANVAS_HEIGHT - h); w = 30; hp = 20; score = 200;
               } else if (type === 'DEBRIS') {
-                  w = 50; h = 50;
+                  w = 50; h = 50; hp = 10; score = 50;
+              } else if (type === 'DRONE') {
+                  hp = 10; canShoot = true; score = 150;
+              } else if (type === 'HUNTER') {
+                  hp = 30; w = 50; h = 40; canShoot = true; score = 300;
               }
 
               obstaclesRef.current.push({
                   id: Date.now(), x: CANVAS_WIDTH + 50, y, width: w, height: h,
-                  type, isDisabled: false, markedForDeletion: false, rotation: Math.random() * Math.PI * 2
+                  type, isDisabled: false, markedForDeletion: false, rotation: Math.random() * Math.PI * 2,
+                  hp, maxHp: hp, scoreValue: score, canShoot, shootCooldown: 60 + Math.random() * 60
               });
           }
           if (Math.random() < 0.005 * timeScale) {
@@ -359,15 +424,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                   type: types[Math.floor(Math.random()*types.length)], floatOffset: 0, markedForDeletion: false
               });
           }
-          if (Math.random() < 0.003 * timeScale && gameMode === GameMode.STORY) {
-              logsRef.current.push({
-                  id: Date.now(), x: CANVAS_WIDTH, y: Math.random()*(CANVAS_HEIGHT-200), width: 30, height: 20,
-                  message: DATA_LOGS[Math.floor(Math.random() * DATA_LOGS.length)], floatOffset: 0, markedForDeletion: false
-              });
-          }
       }
 
-      // Narrative
+      // Narrative Spawning
       if (gameMode === GameMode.STORY) {
          STORY_MOMENTS.forEach(m => {
              if (progressRatio >= m.progress && !triggeredEventsRef.current.has(m.dialogue.id)) {
@@ -376,18 +435,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                  setTimeout(() => { if (activeDialogueRef.current?.id === m.dialogue.id) activeDialogueRef.current = null; }, 6000);
              }
          });
-         NARRATIVE_FRAGMENTS.forEach(nf => {
-             const key = `frag_${nf.progress}`;
-             if (progressRatio >= nf.progress && !triggeredEventsRef.current.has(key)) {
-                 triggeredEventsRef.current.add(key);
-                 logsRef.current.push({
-                     id: Date.now(), x: CANVAS_WIDTH + 100, y: 100 + Math.random()*300, width: 30, height: 20,
-                     message: nf.message, floatOffset: 0, markedForDeletion: false, isCoreMemory: true
-                 });
-             }
-         });
          LANDMARKS.forEach(lm => {
-             // Only spawn if not ending sequence (which handles its own spawn) or if earlier landmark
              if (progressRatio >= lm.progress && !triggeredEventsRef.current.has(lm.type) && lm.type !== 'CHRONOS_RING') {
                  triggeredEventsRef.current.add(lm.type);
                  landmarksRef.current.push({
@@ -398,7 +446,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
          });
       }
 
-      // 4. Updates & Physics
+      // 4. Combat & Collisions
+      
+      // EMP Logic
       empsRef.current.forEach(emp => {
           emp.radius += 15 * timeScale;
           if (emp.radius > emp.maxRadius) emp.markedForDeletion = true;
@@ -406,8 +456,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
              const dx = (obs.x + obs.width/2) - emp.x; const dy = (obs.y + obs.height/2) - emp.y;
              if (Math.sqrt(dx*dx + dy*dy) < emp.radius && !obs.isDisabled) {
                  obs.isDisabled = true;
+                 obs.hp = 0; // Destroy with EMP
                  createParticles(obs.x + obs.width/2, obs.y + obs.height/2, ParticleType.GLITCH, 10, '#22c55e');
-                 scoreRef.current += 50;
              }
           });
       });
@@ -415,23 +465,94 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       player.energy = Math.min(player.maxEnergy, player.energy + ENERGY_RECHARGE_RATE * timeScale);
       if (player.shieldTimer > 0) player.shieldTimer -= dt;
       if (player.overclockTimer > 0) player.overclockTimer -= dt;
-      player.isShielded = player.shieldTimer > 0 || isEndingSequenceRef.current || player.godMode || false;
+      player.isShielded = player.shieldTimer > 0 || isEndingSequenceRef.current || player.godMode || player.isDashing || false;
 
+      // Projectile Logic
+      projectilesRef.current.forEach(proj => {
+          proj.x += proj.vx * timeScale;
+          proj.y += proj.vy * timeScale;
+          if (proj.x > CANVAS_WIDTH + 100 || proj.x < -100) proj.markedForDeletion = true;
+
+          if (proj.isEnemy) {
+              if (checkCollision(proj, player) && !player.isShielded) {
+                  player.integrity -= proj.damage;
+                  proj.markedForDeletion = true;
+                  soundManager.playDamage();
+                  shakeRef.current = 10;
+                  // Reset Combo on Hit
+                  if (player.combo > 1) {
+                      createScorePopup(player.x, player.y - 20, 0, "COMBO LOST");
+                      player.combo = 1;
+                  }
+                  createParticles(player.x, player.y, ParticleType.SPARK, 10, '#ff0000');
+              }
+          } else {
+              // Player Projectiles vs Obstacles
+              obstaclesRef.current.forEach(obs => {
+                  if (checkCollision(proj, obs) && !obs.isDisabled && !obs.markedForDeletion) {
+                      obs.hp -= proj.damage;
+                      proj.markedForDeletion = true;
+                      createParticles(proj.x, proj.y, ParticleType.SPARK, 3, '#00f3ff');
+                      
+                      if (obs.hp <= 0) {
+                          destroyObstacle(obs, player);
+                      }
+                  }
+              });
+          }
+      });
+
+      // Obstacle Updates
       obstaclesRef.current.forEach(obs => {
           obs.x -= currentSpeed * level.obstacleSpeed * timeScale;
           if (obs.x < -100) obs.markedForDeletion = true;
           if (obs.type === 'DRONE' || obs.type === 'DEBRIS') obs.rotation! += 0.05 * timeScale;
-          
-          if (!player.isShielded && !obs.isDisabled && checkCollision(player, obs)) {
-              player.integrity -= 20;
-              soundManager.playDamage();
-              shakeRef.current = 20;
-              player.shieldTimer = 1.0; 
-              createParticles(player.x + 20, player.y + 10, ParticleType.SPARK, 15, '#f59e0b');
-              createParticles(player.x + 20, player.y + 10, ParticleType.SMOKE, 8, '#94a3b8');
+          if (obs.type === 'HUNTER') {
+              // Track player Y
+              obs.y += (player.y - obs.y) * 0.02 * timeScale;
+          }
+
+          // Enemy Shooting
+          if (obs.canShoot && obs.shootCooldown && obs.x < CANVAS_WIDTH - 50 && obs.x > 100 && !obs.isDisabled) {
+              obs.shootCooldown -= timeScale;
+              if (obs.shootCooldown <= 0) {
+                  obs.shootCooldown = 100 + Math.random() * 50;
+                  // Aim at player
+                  const dx = player.x - obs.x;
+                  const dy = player.y - obs.y;
+                  const angle = Math.atan2(dy, dx);
+                  const speed = ENEMY_PROJECTILE_SPEED;
+                  projectilesRef.current.push({
+                      id: Math.random(), x: obs.x, y: obs.y + obs.height/2, width: 10, height: 10,
+                      markedForDeletion: false, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
+                      isEnemy: true, damage: 15, color: '#ff3d00'
+                  });
+              }
+          }
+
+          // Player vs Obstacle Collision
+          if (!obs.isDisabled && !obs.markedForDeletion && checkCollision(player, obs)) {
+              if (player.isDashing || player.godMode) {
+                  // Smash through
+                  destroyObstacle(obs, player);
+              } else if (!player.isShielded) {
+                  // Take Damage
+                  player.integrity -= 20;
+                  soundManager.playDamage();
+                  shakeRef.current = 20;
+                  player.shieldTimer = 1.0; 
+                  obs.markedForDeletion = true;
+                  // Reset Combo
+                  if (player.combo > 1) {
+                      createScorePopup(player.x, player.y - 20, 0, "COMBO LOST");
+                      player.combo = 1;
+                  }
+                  createParticles(player.x + 20, player.y + 10, ParticleType.SPARK, 15, '#f59e0b');
+              }
           }
       });
 
+      // Powerups
       powerupsRef.current.forEach(p => {
           p.x -= currentSpeed * timeScale;
           p.floatOffset += 0.05 * timeScale;
@@ -439,50 +560,42 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               p.markedForDeletion = true;
               soundManager.playCollectData();
               createParticles(p.x, p.y, ParticleType.SPARK, 10, POWERUP_COLORS[p.type]);
-              if (p.type === PowerupType.CHARGE) player.energy = player.maxEnergy;
+              if (p.type === PowerupType.CHARGE) player.energy = Math.min(player.maxEnergy, player.energy + 50);
               if (p.type === PowerupType.REPAIR) player.integrity = Math.min(100, player.integrity + 30);
-              if (p.type === PowerupType.SHIELD) player.shieldTimer = 5.0;
-              if (p.type === PowerupType.OVERCLOCK) player.overclockTimer = 8.0;
+              if (p.type === PowerupType.SHIELD) player.shieldTimer = 8.0;
+              if (p.type === PowerupType.OVERCLOCK) player.overclockTimer = 10.0;
+              createScorePopup(p.x, p.y, 500, p.type);
           }
       });
 
-      logsRef.current.forEach(l => {
-          l.x -= currentSpeed * timeScale;
-          l.floatOffset += 0.03 * timeScale;
-          if (checkCollision(player, l)) {
-              l.markedForDeletion = true;
-              soundManager.playCollectData();
-              activeLogRef.current = l.message;
-              setTimeout(() => { if (activeLogRef.current === l.message) activeLogRef.current = null; }, 4000);
-          }
-      });
+      // Environment
+      landmarksRef.current.forEach(l => { l.x -= currentSpeed * timeScale; });
 
-      landmarksRef.current.forEach(l => {
-          l.x -= currentSpeed * timeScale;
-      });
-
+      // Particles
       particlesRef.current.forEach(p => {
           p.life -= dt;
           p.x += p.vx * timeScale;
           p.y += p.vy * timeScale;
           
-          if (p.type === ParticleType.SPARK) {
-              p.vy += 0.5 * timeScale; 
-              p.vx *= 0.95; 
-          } else if (p.type === ParticleType.SMOKE) {
-              p.vy -= 0.1 * timeScale; 
-              p.radius += 0.2 * timeScale; 
-              p.alpha -= 0.02 * timeScale;
-          } else if (p.type === ParticleType.THRUST) {
-              p.radius *= 0.9;
+          if (p.type === ParticleType.EXPLOSION) {
+              p.radius += 1.0 * timeScale;
+              p.alpha -= 0.05 * timeScale;
           }
       });
+      
+      // Score Popups
+      scorePopupsRef.current.forEach(p => {
+          p.life -= dt;
+          p.y -= 1 * timeScale; // Float up
+      });
 
+      // Cleanup
       obstaclesRef.current = obstaclesRef.current.filter(e => !e.markedForDeletion);
+      projectilesRef.current = projectilesRef.current.filter(e => !e.markedForDeletion);
       powerupsRef.current = powerupsRef.current.filter(e => !e.markedForDeletion);
-      logsRef.current = logsRef.current.filter(e => !e.markedForDeletion);
       empsRef.current = empsRef.current.filter(e => !e.markedForDeletion);
       particlesRef.current = particlesRef.current.filter(p => p.life > 0);
+      scorePopupsRef.current = scorePopupsRef.current.filter(p => p.life > 0);
 
       if (shakeRef.current > 0) shakeRef.current *= 0.9;
 
@@ -491,16 +604,31 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             integrity: player.integrity, energy: player.energy, isShielded: player.isShielded,
             progress: progressPercent, timeLeft: timeRef.current, levelIndex, score: scoreRef.current,
             activeDialogue: activeDialogueRef.current, activeLog: activeLogRef.current,
-            hyperMode: progressMultiplierRef.current > 1
+            hyperMode: player.combo > 5, combo: player.combo
           });
       }
+    };
+
+    const destroyObstacle = (obs: Obstacle, player: Player) => {
+        obs.markedForDeletion = true;
+        soundManager.playExplosion();
+        createParticles(obs.x + obs.width/2, obs.y + obs.height/2, ParticleType.EXPLOSION, 12, '#ff6b00');
+        
+        // Combo Logic
+        player.combo = Math.min(50, player.combo + 1); // Cap combo at 50x
+        player.comboTimer = COMBO_DECAY;
+        
+        const scoreVal = obs.scoreValue * player.combo;
+        scoreRef.current += scoreVal;
+        
+        createScorePopup(obs.x, obs.y, scoreVal, `${player.combo}x`);
     };
 
     const drawAurora = (ctx: CanvasRenderingContext2D, color: string, now: number) => {
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
-      ctx.filter = 'blur(40px)'; // Increased blur
-      ctx.globalAlpha = 0.6; // Brighter
+      ctx.filter = 'blur(40px)'; 
+      ctx.globalAlpha = 0.6; 
       const t = now * 0.001;
       
       const grad = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, 0);
@@ -530,15 +658,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         grad.addColorStop(0, level.colors.sky[0]); grad.addColorStop(1, level.colors.sky[1]);
         ctx.fillStyle = grad; ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
 
-        // Cyber Aurora
-        if (level.colors.aurora) {
-          drawAurora(ctx, level.colors.aurora, now);
-        }
+        if (level.colors.aurora) drawAurora(ctx, level.colors.aurora, now);
 
         // Sun / Moon / Digital Horizon
         ctx.save();
         ctx.fillStyle = level.colors.grid; 
-        ctx.shadowColor = level.colors.grid; ctx.shadowBlur = 100; // Stronger glow
+        ctx.shadowColor = level.colors.grid; ctx.shadowBlur = 100;
         ctx.globalCompositeOperation = 'lighter';
         ctx.beginPath(); ctx.arc(CANVAS_WIDTH - 200, 150, 70, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur = 0;
@@ -551,11 +676,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
         });
 
-        // 3. Procedural Skylines (Parallax)
+        // 3. Parallax
         bgLayersRef.current.forEach((layer, i) => {
             ctx.save();
             ctx.fillStyle = layer.color;
-            // Add a neon rim light to buildings
             ctx.strokeStyle = level.colors.grid || "#00f3ff";
             ctx.shadowColor = level.colors.grid;
             ctx.shadowBlur = i === 0 ? 10 : 0;
@@ -578,46 +702,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                 const x = j * blockWidth - offset;
                 const h = b.height;
                 
-                // Draw Building
                 ctx.fillRect(x, CANVAS_HEIGHT - h, blockWidth + 1, h);
                 
-                // Neon Trim
                 if (i >= 0) {
                      ctx.globalAlpha = 0.4;
                      ctx.beginPath(); ctx.moveTo(x, CANVAS_HEIGHT); ctx.lineTo(x, CANVAS_HEIGHT-h); ctx.lineTo(x+blockWidth, CANVAS_HEIGHT-h); ctx.stroke();
                      ctx.globalAlpha = 1.0;
-
-                     // Windows
-                     const windowColor = i === 1 ? "#334155" : "#475569"; 
-                     const windowSize = i === 1 ? 4 : 6;
-                     const seed = (idx * 1337) % 100;
-                     if (seed % 3 === 0) {
-                        ctx.fillStyle = level.colors.grid; // Neon strip
-                        ctx.fillRect(x + 10, CANVAS_HEIGHT - h + 10, 2, h - 20);
-                     } else if (seed % 3 === 1) {
-                        for (let wy = CANVAS_HEIGHT - h + 10; wy < CANVAS_HEIGHT; wy += windowSize * 3) {
-                            for (let wx = x + 5; wx < x + blockWidth - 5; wx += windowSize * 2) {
-                                if ((wx + wy) % 5 !== 0) {
-                                  // Random lit windows
-                                  ctx.fillStyle = Math.random() > 0.9 ? "#facc15" : windowColor; 
-                                  if (Math.random() > 0.92) ctx.fillStyle = level.colors.grid; // Occasional blue data window
-                                  ctx.fillRect(wx, wy, windowSize, windowSize);
-                                }
-                            }
-                        }
-                     }
                      ctx.fillStyle = layer.color;
                 }
             }
             ctx.restore();
         });
 
-        // 4. Cyber Grid Floor
+        // 4. Cyber Grid
         ctx.save();
         ctx.strokeStyle = level.colors.grid;
         ctx.lineWidth = 2;
         ctx.shadowColor = level.colors.grid;
-        ctx.shadowBlur = 20; // Extra Glowy Grid
+        ctx.shadowBlur = 20; 
         ctx.globalAlpha = 0.8;
         const horizonY = CANVAS_HEIGHT - 50;
         
@@ -651,14 +753,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         landmarksRef.current.forEach(l => drawLandmark(ctx, l));
         obstaclesRef.current.forEach(o => drawObstacle(ctx, o, now));
         powerupsRef.current.forEach(p => drawPowerup(ctx, p));
-        logsRef.current.forEach(l => drawLog(ctx, l));
         empsRef.current.forEach(e => drawEMP(ctx, e));
+        
+        projectilesRef.current.forEach(p => drawProjectile(ctx, p));
 
         drawPlayer(ctx, playerRef.current);
         
         particlesRef.current.forEach(p => drawParticle(ctx, p));
+        scorePopupsRef.current.forEach(p => drawScorePopup(ctx, p));
+
         ctx.restore();
 
+        // Fog
         if (lastLevelIndexRef.current < 4) {
             const gradFog = ctx.createLinearGradient(0, CANVAS_HEIGHT-200, 0, CANVAS_HEIGHT);
             gradFog.addColorStop(0, "rgba(0,0,0,0)");
@@ -668,10 +774,39 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         }
     };
 
+    const drawProjectile = (ctx: CanvasRenderingContext2D, p: Projectile) => {
+        ctx.save();
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 10;
+        
+        if (p.isEnemy) {
+            ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2); ctx.fill();
+        } else {
+            ctx.fillRect(p.x, p.y, p.width, p.height);
+        }
+        ctx.restore();
+    };
+
+    const drawScorePopup = (ctx: CanvasRenderingContext2D, s: ScorePopup) => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, s.life);
+        ctx.fillStyle = s.color;
+        ctx.shadowColor = 'black';
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 20px Orbitron';
+        ctx.fillText(s.text || `+${s.value}`, s.x, s.y);
+        ctx.restore();
+    };
+
     const drawParticle = (ctx: CanvasRenderingContext2D, p: Particle) => {
         ctx.save();
         ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-        if (p.type === ParticleType.SPARK || p.type === ParticleType.THRUST) {
+        if (p.type === ParticleType.EXPLOSION) {
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = p.color; ctx.shadowBlur = 30;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
+        } else if (p.type === ParticleType.SPARK || p.type === ParticleType.THRUST) {
             ctx.globalCompositeOperation = 'lighter';
             ctx.fillStyle = p.color;
             ctx.shadowColor = p.color; ctx.shadowBlur = 20;
@@ -680,9 +815,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             ctx.fillStyle = p.color;
             ctx.shadowColor = p.color; ctx.shadowBlur = 10;
             ctx.fillRect(p.x, p.y, p.radius, p.radius);
-        } else {
-            ctx.fillStyle = p.color;
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
         }
         ctx.restore();
     };
@@ -701,22 +833,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     const drawPlayer = (ctx: CanvasRenderingContext2D, p: Player) => {
         ctx.save(); ctx.translate(p.x + p.width/2, p.y + p.height/2); ctx.rotate(p.angle);
         
-        if (p.isShielded) {
-            ctx.strokeStyle = "#bc13fe"; ctx.lineWidth = 2; 
-            ctx.shadowColor = "#bc13fe"; ctx.shadowBlur = 30;
+        if (p.isDashing) {
+             // Blur Effect for Dash
+             ctx.shadowColor = "#00f3ff"; ctx.shadowBlur = 50;
+             ctx.globalAlpha = 0.8;
+             // Scale up slightly
+             ctx.scale(1.1, 0.8);
+        }
+
+        if (p.isShielded || p.isDashing) {
+            ctx.strokeStyle = p.isDashing ? "#00f3ff" : "#bc13fe"; ctx.lineWidth = 2; 
+            ctx.shadowColor = p.isDashing ? "#00f3ff" : "#bc13fe"; ctx.shadowBlur = 30;
             ctx.globalAlpha = 0.5 + Math.sin(Date.now()/100)*0.2;
             ctx.beginPath(); ctx.arc(0, 0, 55, 0, Math.PI*2); ctx.stroke(); 
             ctx.shadowBlur = 0; ctx.globalAlpha = 1;
         }
 
-        if (p.godMode) {
-             ctx.strokeStyle = "#ffd700"; ctx.lineWidth = 3;
-             ctx.shadowColor = "#ffd700"; ctx.shadowBlur = 20;
-             ctx.beginPath(); ctx.arc(0, 0, 65, 0, Math.PI*2); ctx.stroke();
-             ctx.shadowBlur = 0;
-        }
-
-        // MK-V Sleigh Body - Cyber Style
+        // MK-V Sleigh Body
         ctx.shadowColor = "#00f3ff"; ctx.shadowBlur = 30;
         ctx.fillStyle = "#020617"; 
         ctx.beginPath(); 
@@ -732,8 +865,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.fillRect(-45, -8, 20, 16);
         
         // Thruster Glow
-        ctx.fillStyle = p.isThrusting ? "#00f3ff" : "#1e293b"; 
-        ctx.shadowColor = p.isThrusting ? "#00f3ff" : "none"; ctx.shadowBlur = p.isThrusting ? 40 : 0;
+        ctx.fillStyle = p.isThrusting || p.isDashing ? "#00f3ff" : "#1e293b"; 
+        ctx.shadowColor = p.isThrusting || p.isDashing ? "#00f3ff" : "none"; ctx.shadowBlur = p.isThrusting ? 40 : 0;
         ctx.beginPath(); ctx.ellipse(-48, 0, 4, 10, 0, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur = 0;
 
@@ -745,7 +878,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.fillStyle = "rgba(255,255,255,0.8)";
         ctx.beginPath(); ctx.ellipse(8, -7, 8, 3, -0.2, 0, Math.PI*2); ctx.fill();
 
-        // Scarf/Trail (Digital Stream)
+        // Scarf/Trail
         const t = Date.now() / 150;
         ctx.strokeStyle = "#ff00ff"; ctx.lineWidth = 4; ctx.lineCap = 'round';
         ctx.shadowColor = "#ff00ff"; ctx.shadowBlur = 20;
@@ -762,37 +895,49 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.save(); ctx.translate(o.x + o.width/2, o.y + o.height/2);
         ctx.globalAlpha = o.isDisabled ? 0.3 : 1;
         
-        if (o.type === 'DRONE') {
+        // Hit flash
+        if (o.hp < o.maxHp) {
+            ctx.shadowColor = "white";
+            ctx.shadowBlur = 20;
+        }
+
+        if (o.type === 'DRONE' || o.type === 'HUNTER') {
             const hover = Math.sin(now * 0.005) * 5;
             ctx.translate(0, hover);
             
-            ctx.fillStyle = o.isDisabled ? "#22c55e" : "#ff3d00";
+            ctx.fillStyle = o.type === 'HUNTER' ? "#991b1b" : (o.isDisabled ? "#22c55e" : "#ff3d00");
             ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 25;
-            ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(0, 0, o.type==='HUNTER' ? 12 : 8, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
             
             ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, o.type==='HUNTER' ? 20 : 14, 0, Math.PI*2); ctx.stroke();
             
-            ctx.rotate(now * 0.01);
-            ctx.fillStyle = "#cbd5e1";
-            ctx.fillRect(-22, -2, 10, 4); ctx.fillRect(12, -2, 10, 4);
-            ctx.fillRect(-2, -22, 4, 10); ctx.fillRect(-2, 12, 4, 10);
+            // Hunter spikes
+            if (o.type === 'HUNTER') {
+                ctx.rotate(now * 0.02);
+                ctx.fillStyle = "#ef4444";
+                for(let i=0; i<4; i++) {
+                    ctx.rotate(Math.PI/2);
+                    ctx.beginPath(); ctx.moveTo(20, -5); ctx.lineTo(35, 0); ctx.lineTo(20, 5); ctx.fill();
+                }
+            } else {
+                ctx.rotate(now * 0.01);
+                ctx.fillStyle = "#cbd5e1";
+                ctx.fillRect(-22, -2, 10, 4); ctx.fillRect(12, -2, 10, 4);
+                ctx.fillRect(-2, -22, 4, 10); ctx.fillRect(-2, 12, 4, 10);
+            }
+
         } else if (o.type === 'SERVER_TOWER') {
             const w = o.width; const h = o.height;
             ctx.translate(-w/2, -h/2);
             ctx.fillStyle = "#020617"; ctx.fillRect(0,0,w,h);
-            
-            // Neon Edges
             ctx.strokeStyle = o.isDisabled ? "#22c55e" : "#ff3d00";
             ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 15;
             ctx.strokeRect(0,0,w,h);
-            
             for(let i=10; i<h-10; i+=15) {
                 const on = Math.sin(now * 0.01 + i) > 0;
                 ctx.fillStyle = on ? (o.isDisabled ? "#22c55e" : "#ff3d00") : "#1e293b";
-                ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = on ? 15 : 0;
                 ctx.fillRect(5, i, w-10, 4);
-                ctx.shadowBlur = 0;
             }
         } else if (o.type === 'ENERGY_BARRIER') {
             const w = o.width; const h = o.height;
@@ -839,7 +984,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             ctx.moveTo(-50, 150); ctx.lineTo(50, 150); ctx.lineTo(0, 70); ctx.lineTo(-50, 150);
             ctx.stroke(); ctx.shadowBlur = 0;
         } else {
-            // Ruined Factory
             ctx.fillStyle = "#000510"; 
             ctx.strokeStyle = "#bc13fe"; ctx.lineWidth = 2;
             ctx.shadowColor = "#bc13fe"; ctx.shadowBlur = 30;
@@ -877,19 +1021,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         } else {
             ctx.fillRect(-8, -8, 16, 16); ctx.fillStyle = "#fff"; ctx.fillRect(-4, -4, 8, 8);
         }
-        ctx.restore();
-    };
-    
-    const drawLog = (ctx: CanvasRenderingContext2D, l: DataLog) => {
-        const y = l.y + Math.sin(l.floatOffset)*5;
-        ctx.save(); ctx.translate(l.x, y);
-        
-        ctx.shadowColor = l.isCoreMemory ? "#facc15" : "#00f3ff"; ctx.shadowBlur = 20;
-        ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0, 30, 20);
-        ctx.strokeStyle = l.isCoreMemory ? "#facc15" : "#00f3ff"; ctx.lineWidth = 2; ctx.strokeRect(0,0,30,20);
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.fillRect(5, 5, 20, 2); ctx.fillRect(5, 10, 15, 2); ctx.fillRect(5, 15, 10, 2);
-        
         ctx.restore();
     };
 

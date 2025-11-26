@@ -17,7 +17,7 @@ export enum GameMode {
 export enum PowerupType {
   CHARGE = 'CHARGE',       // Restores Energy
   REPAIR = 'REPAIR',       // Restores Hull
-  OVERCLOCK = 'OVERCLOCK', // Speed Boost
+  OVERCLOCK = 'OVERCLOCK', // Fire Rate Boost
   SHIELD = 'SHIELD',        // Invincibility
   GOD_MODE = 'GOD_MODE'    // Debug only
 }
@@ -33,21 +33,51 @@ export interface Entity {
 
 export interface Player extends Entity {
   vy: number;
-  integrity: number;    // Was Lives
-  energy: number;       // Was Snowballs (0-100)
+  integrity: number;    // HP
+  energy: number;       // Dash Resource
   maxEnergy: number;
   isShielded: boolean;
   shieldTimer: number;
-  overclockTimer: number; // Speed
+  overclockTimer: number; // Rapid Fire
   angle: number; 
-  isThrusting: boolean; // Visual state
-  godMode?: boolean; // Debug
+  isThrusting: boolean; 
+  isDashing: boolean;   // New: Phase Dash state
+  dashTimer: number;
+  godMode?: boolean;
+  
+  // Combat stats
+  weaponCooldown: number;
+  combo: number;
+  comboTimer: number;
 }
 
 export interface Obstacle extends Entity {
-  type: 'DEBRIS' | 'DRONE' | 'SERVER_TOWER' | 'ENERGY_BARRIER';
-  isDisabled: boolean; // If hit by EMP
-  rotation?: number; 
+  type: 'DEBRIS' | 'DRONE' | 'SERVER_TOWER' | 'ENERGY_BARRIER' | 'HUNTER';
+  isDisabled: boolean; 
+  rotation?: number;
+  hp: number;
+  maxHp: number;
+  scoreValue: number;
+  canShoot: boolean;
+  shootCooldown?: number;
+}
+
+export interface Projectile extends Entity {
+  vx: number;
+  vy: number;
+  isEnemy: boolean;
+  damage: number;
+  color: string;
+}
+
+export interface ScorePopup {
+  id: number;
+  x: number;
+  y: number;
+  value: number;
+  text: string;
+  life: number;
+  color: string;
 }
 
 export interface Landmark extends Entity {
@@ -66,7 +96,6 @@ export interface DataLog extends Entity {
   isCoreMemory?: boolean; 
 }
 
-// Replaces Projectile - Area of Effect
 export interface EMPBurst {
   id: number;
   x: number;
@@ -81,7 +110,8 @@ export enum ParticleType {
   SMOKE,     // Grey/Black
   GLITCH,    // Green/Pink blocks
   THRUST,    // Engine exhaust
-  DATA       // Binary 0/1
+  DATA,      // Binary 0/1
+  EXPLOSION  // Orange/Red
 }
 
 export interface Particle {
@@ -105,7 +135,7 @@ export interface LevelConfig {
     sky: [string, string];
     grid: string;
     fog: string;
-    aurora: string; // Added for visual flair
+    aurora: string; 
   };
   obstacleSpeed: number;
   spawnRate: number;
