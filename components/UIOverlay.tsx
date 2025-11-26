@@ -38,7 +38,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             {/* Hull Integrity */}
             <div className="flex items-center gap-2">
                 <Activity size={16} className={integrity < 30 ? "text-red-500 animate-pulse" : "text-emerald-400"} />
-                <div className="w-full h-2 bg-slate-900 rounded-sm overflow-hidden border border-slate-700 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+                <div className="w-full h-2 bg-black rounded-sm overflow-hidden border border-cyan-900 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
                     <div className={`h-full transition-all duration-300 ${integrity < 30 ? "bg-red-500 shadow-[0_0_10px_#ef4444]" : "bg-emerald-500 shadow-[0_0_10px_#10b981]"}`} style={{width: `${integrity}%`}} />
                 </div>
                 <span className="text-xs tracking-wider">HULL</span>
@@ -47,7 +47,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
             {/* Energy */}
             <div className="flex items-center gap-2">
                 <Zap size={16} className={energy < 20 ? "text-yellow-500" : "text-cyan-400"} />
-                <div className="w-full h-2 bg-slate-900 rounded-sm overflow-hidden border border-slate-700 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+                <div className="w-full h-2 bg-black rounded-sm overflow-hidden border border-cyan-900 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
                     <div className="h-full bg-cyan-400 transition-all duration-100 shadow-[0_0_10px_#00f3ff]" style={{width: `${energy}%`}} />
                 </div>
                 <span className="text-xs tracking-wider">PWR</span>
@@ -100,15 +100,15 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       )}
 
       {/* Bottom Status Bar */}
-      <div className="flex justify-between items-end text-xs text-slate-400 uppercase tracking-widest">
+      <div className="flex justify-between items-end text-xs text-cyan-700 uppercase tracking-widest">
           <div>
               <div className="text-white font-bold text-sm drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">{currentLevelName}</div>
               <div className="text-cyan-500">{currentLevelSub}</div>
           </div>
           
           <div className="flex flex-col items-end gap-1 w-1/3">
-              <span className="text-cyan-700">Mission Progress</span>
-              <div className="w-full h-1 bg-slate-900 border border-slate-700">
+              <span className="text-cyan-600">Mission Progress</span>
+              <div className="w-full h-1 bg-black border border-cyan-900">
                   <div className="h-full bg-white transition-all duration-500 shadow-[0_0_10px_#fff]" style={{width: `${Math.min(100, progress)}%`}} />
               </div>
           </div>
