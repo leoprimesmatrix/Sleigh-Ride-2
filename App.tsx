@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import GameCanvas from './components/GameCanvas.tsx';
 import VictorySequence from './components/VictorySequence.tsx';
 import { GameState, GameMode, DebugCommand } from './types.ts';
-import { Terminal, Cpu, Power, ShieldAlert, Radio, Database, XCircle, Lock, FastForward, Eye } from 'lucide-react';
+import { Terminal, Cpu, Power, ShieldAlert, Radio, Database, XCircle, Lock, FastForward, Eye, Zap, Gauge } from 'lucide-react';
 import { soundManager } from './audio.ts';
 
 const App: React.FC = () => {
@@ -82,26 +82,28 @@ const App: React.FC = () => {
 
   const sendDebugCommand = (cmd: DebugCommand) => {
       setDebugCommand(cmd);
-      setShowDebugMenu(false);
-      if (gameState !== GameState.PLAYING) {
+      // Don't close menu immediately for buttons that can be clicked multiple times
+      if (cmd === 'SKIP_TO_ENDING') setShowDebugMenu(false);
+      
+      if (gameState !== GameState.PLAYING && cmd === 'SKIP_TO_ENDING') {
           setGameState(GameState.PLAYING);
       }
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#020617] flex flex-col items-center justify-center font-mono text-slate-300 relative select-none">
+    <div className="h-screen w-screen overflow-hidden bg-[#00020a] flex flex-col items-center justify-center font-mono text-cyan-50 relative select-none">
       
       {/* CRT Scanline Overlay */}
       <div className="absolute inset-0 scanlines z-50 pointer-events-none opacity-30"></div>
       
       {/* Moving Holographic Grid */}
-      <div className="absolute inset-0 holo-grid opacity-30 pointer-events-none transform perspective-3d rotate-x-60"></div>
+      <div className="absolute inset-0 holo-grid opacity-20 pointer-events-none transform perspective-3d rotate-x-60"></div>
 
       {/* Vignette */}
-      <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(circle, transparent 60%, rgba(0,0,0,0.95) 100%)' }}></div>
+      <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(circle, transparent 50%, rgba(0,2,10,0.95) 100%)' }}></div>
 
       {/* Floating System Deco - SECRET TRIGGER */}
-      <div className="absolute top-4 left-4 text-[10px] text-cyan-900 flex flex-col gap-1 z-50 cursor-pointer hover:text-cyan-500 transition-colors" onClick={handleSecretClick}>
+      <div className="absolute top-4 left-4 text-[10px] text-cyan-900 flex flex-col gap-1 z-50 cursor-pointer hover:text-cyan-400 transition-colors" onClick={handleSecretClick}>
           <div>SYS_ID: 0x94F2A</div>
           <div>MEM_FREE: 4092TB</div>
           <div>UPTIME: 9999:59:59</div>
@@ -114,17 +116,23 @@ const App: React.FC = () => {
 
       {/* Debug Menu Overlay */}
       {showDebugMenu && (
-          <div className="absolute top-20 left-20 z-[90] bg-black/95 border border-green-500 p-4 w-64 shadow-2xl backdrop-blur-md">
-               <div className="flex justify-between items-center mb-4 border-b border-green-900 pb-2">
-                   <h3 className="text-green-500 font-bold tracking-widest text-xs">DEBUG_TERMINAL</h3>
-                   <button onClick={() => setShowDebugMenu(false)} className="text-green-700 hover:text-green-400"><XCircle size={14}/></button>
+          <div className="absolute top-20 left-20 z-[90] bg-[#000510]/95 border border-cyan-500 p-4 w-72 shadow-[0_0_30px_rgba(0,243,255,0.2)] backdrop-blur-md">
+               <div className="flex justify-between items-center mb-4 border-b border-cyan-900 pb-2">
+                   <h3 className="text-cyan-400 font-bold tracking-widest text-xs">DEBUG_TERMINAL</h3>
+                   <button onClick={() => setShowDebugMenu(false)} className="text-cyan-700 hover:text-cyan-400"><XCircle size={14}/></button>
                </div>
                <div className="space-y-2">
-                   <button onClick={() => sendDebugCommand('SKIP_TO_ENDING')} className="w-full text-left text-xs bg-slate-900 hover:bg-green-900 text-green-400 p-2 border border-slate-800 flex items-center gap-2">
+                   <button onClick={() => sendDebugCommand('SKIP_TO_ENDING')} className="w-full text-left text-xs bg-slate-900 hover:bg-cyan-900/50 text-cyan-400 p-2 border border-slate-800 hover:border-cyan-500 flex items-center gap-2 transition-colors">
                        <FastForward size={14} /> JUMP TO CHRONOS
                    </button>
-                   <button onClick={() => sendDebugCommand('TOGGLE_GOD_MODE')} className="w-full text-left text-xs bg-slate-900 hover:bg-green-900 text-yellow-400 p-2 border border-slate-800 flex items-center gap-2">
+                   <button onClick={() => sendDebugCommand('TOGGLE_GOD_MODE')} className="w-full text-left text-xs bg-slate-900 hover:bg-cyan-900/50 text-yellow-400 p-2 border border-slate-800 hover:border-yellow-500 flex items-center gap-2 transition-colors">
                        <Eye size={14} /> TOGGLE GOD MODE
+                   </button>
+                   <button onClick={() => sendDebugCommand('INCREASE_SPEED')} className="w-full text-left text-xs bg-slate-900 hover:bg-cyan-900/50 text-green-400 p-2 border border-slate-800 hover:border-green-500 flex items-center gap-2 transition-colors">
+                       <Gauge size={14} /> INCREASE SPEED (+20%)
+                   </button>
+                   <button onClick={() => sendDebugCommand('TOGGLE_HYPER_PROGRESS')} className="w-full text-left text-xs bg-slate-900 hover:bg-cyan-900/50 text-fuchsia-400 p-2 border border-slate-800 hover:border-fuchsia-500 flex items-center gap-2 transition-colors">
+                       <Zap size={14} /> HYPER TRAVEL (10x)
                    </button>
                </div>
           </div>
@@ -149,7 +157,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Main Menu Panel */}
-            <div className="w-full max-w-md bg-black/80 border border-slate-800 backdrop-blur-md p-1 relative group shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+            <div className="w-full max-w-md bg-[#000510]/80 border border-cyan-900 backdrop-blur-md p-1 relative group shadow-[0_0_50px_rgba(0,243,255,0.15)]">
                 {/* Corner Accents */}
                 <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-cyan-500"/>
                 <div className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-cyan-500"/>
@@ -157,14 +165,14 @@ const App: React.FC = () => {
                 <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 border-cyan-500"/>
 
                 <div className="p-6 flex flex-col gap-4">
-                    <div className="text-left text-xs text-slate-500 font-mono mb-4">
+                    <div className="text-left text-xs text-cyan-700 font-mono mb-4">
                         <p>> YEAR: 2941 AD</p>
                         <p>> UNIT: KRAMPUS-7</p>
                         <p>> OBJECTIVE: RECOVER LEGACY DATA</p>
                         <p>> <span className="animate-pulse">_</span></p>
                     </div>
 
-                    <button onClick={handleStart} className="relative overflow-hidden group/btn bg-slate-900 border border-slate-700 hover:border-cyan-400 py-4 px-8 transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]">
+                    <button onClick={handleStart} className="relative overflow-hidden group/btn bg-slate-900 border border-slate-700 hover:border-cyan-400 py-4 px-8 transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,243,255,0.4)]">
                         <div className="absolute inset-0 w-full h-full bg-cyan-500/10 scale-x-0 group-hover/btn:scale-x-100 transition-transform origin-left duration-300"></div>
                         <div className="flex items-center justify-center gap-3 relative z-10">
                             <Power className="text-cyan-500 group-hover/btn:text-white transition-colors" size={20} />
@@ -181,11 +189,11 @@ const App: React.FC = () => {
                     </button>
                     
                     <div className="grid grid-cols-2 gap-2 mt-4">
-                        <div className="bg-slate-900/50 border border-slate-800 p-2 text-xs text-slate-500 text-center">
+                        <div className="bg-slate-900/50 border border-slate-800 p-2 text-xs text-slate-500 text-center hover:border-cyan-500/30 transition-colors">
                             <span className="text-cyan-600 font-bold block mb-1">CONTROLS</span>
                             [SPACE] THRUST
                         </div>
-                         <div className="bg-slate-900/50 border border-slate-800 p-2 text-xs text-slate-500 text-center">
+                         <div className="bg-slate-900/50 border border-slate-800 p-2 text-xs text-slate-500 text-center hover:border-cyan-500/30 transition-colors">
                             <span className="text-cyan-600 font-bold block mb-1">ABILITY</span>
                             [Z] EMP BLAST
                         </div>
@@ -196,9 +204,9 @@ const App: React.FC = () => {
       )}
 
       {gameState === GameState.INFO && (
-          <div className="z-30 w-full max-w-4xl h-[80vh] bg-black/95 border border-slate-700 backdrop-blur-md p-6 relative flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+          <div className="z-30 w-full max-w-4xl h-[80vh] bg-[#000510]/95 border border-cyan-900 backdrop-blur-md p-6 relative flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)]">
              {/* Header */}
-             <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-4">
+             <div className="flex items-center justify-between border-b border-cyan-900/50 pb-4 mb-4">
                  <div className="flex items-center gap-4">
                      <Database className="text-yellow-500 animate-pulse" size={24} />
                      <h2 className="text-2xl font-bold tracking-widest text-white">SCAVENGER DATABASE</h2>
@@ -280,7 +288,7 @@ const App: React.FC = () => {
                  </div>
              </div>
              
-             <div className="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
+             <div className="mt-4 pt-4 border-t border-cyan-900/50 text-xs text-slate-500 flex justify-between">
                  <span>DATABASE VER: 2.1.0</span>
                  <span>ACCESS LEVEL: RESTRICTED</span>
              </div>
@@ -294,7 +302,7 @@ const App: React.FC = () => {
                   <div className="text-xl text-white tracking-widest font-bold glitch" data-text="SYSTEM BOOT">SYSTEM BOOT</div>
               </div>
               
-              <div className="w-full bg-black/90 h-64 border border-slate-700 p-4 font-mono text-xs overflow-hidden flex flex-col justify-end shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+              <div className="w-full bg-[#000510]/90 h-64 border border-cyan-900 p-4 font-mono text-xs overflow-hidden flex flex-col justify-end shadow-[0_0_20px_rgba(0,243,255,0.1)]">
                   {bootLog.map((log, i) => (
                       <div key={i} className="mb-1">
                           <span className="text-cyan-500 mr-2">{'>'}</span>
@@ -311,7 +319,7 @@ const App: React.FC = () => {
       )}
 
       {(gameState === GameState.PLAYING || gameState === GameState.GAME_OVER || gameState === GameState.VICTORY) && (
-         <div className="relative w-full h-full md:max-w-[1200px] md:max-h-[600px] shadow-[0_0_50px_rgba(0,0,0,1)] overflow-hidden bg-black z-20 border-2 border-slate-800 rounded-lg">
+         <div className="relative w-full h-full md:max-w-[1200px] md:max-h-[600px] shadow-[0_0_80px_rgba(0,0,0,1)] overflow-hidden bg-[#00020a] z-20 border-2 border-slate-800 rounded-lg">
             <GameCanvas 
               gameState={gameState} 
               gameMode={gameMode} 
@@ -323,8 +331,10 @@ const App: React.FC = () => {
             
             {/* Debug Indicator */}
             {isDebugUnlocked && (
-              <div className="absolute top-2 left-2 text-[10px] text-green-500 border border-green-800 px-2 py-1 bg-black/80 z-50">
-                DEBUG_MODE_ACTIVE
+              <div className="absolute top-2 left-2 flex gap-2 z-50">
+                  <div className="text-[10px] text-green-500 border border-green-800 px-2 py-1 bg-black/80">
+                    DEBUG_MODE
+                  </div>
               </div>
             )}
             

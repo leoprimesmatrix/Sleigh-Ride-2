@@ -124,4 +124,4 @@ export interface DialogueLine {
   text: string;
 }
 
-export type DebugCommand = 'SKIP_TO_ENDING' | 'TOGGLE_GOD_MODE' | null;
+export type DebugCommand = 'SKIP_TO_ENDING' | 'TOGGLE_GOD_MODE' | 'INCREASE_SPEED' | 'TOGGLE_HYPER_PROGRESS' | null;

@@ -15,10 +15,10 @@ export const EMP_RADIUS = 250;
 export const ENERGY_RECHARGE_RATE = 0.1; // Passive recharge
 
 export const POWERUP_COLORS: Record<PowerupType, string> = {
-  [PowerupType.CHARGE]: '#22d3ee',    // Neon Cyan (Energy)
-  [PowerupType.REPAIR]: '#4ade80',    // Neon Green (Health)
-  [PowerupType.OVERCLOCK]: '#facc15', // Bright Yellow (Speed)
-  [PowerupType.SHIELD]: '#e879f9',    // Neon Pink/Purple (Shield)
+  [PowerupType.CHARGE]: '#00f3ff',    // Electric Cyan
+  [PowerupType.REPAIR]: '#00ff41',    // Neon Green
+  [PowerupType.OVERCLOCK]: '#ff00ff', // Neon Magenta
+  [PowerupType.SHIELD]: '#bc13fe',    // Neon Purple
   [PowerupType.GOD_MODE]: '#ffd700',  // Gold
 };
 
@@ -28,12 +28,12 @@ export const LEVELS: LevelConfig[] = [
   {
     name: "SECTOR 01", 
     subtext: "NEON WASTELANDS",
-    // Changed to deep blues/purples instead of black
+    // Deep blue void with intense cyan grid
     colors: { 
-      sky: ['#020617', '#172554'], // Slate 950 to Blue 950
-      grid: '#06b6d4', // Cyan 500
-      fog: 'rgba(8, 145, 178, 0.4)', // Cyan 700 with alpha
-      aurora: '#22d3ee' // Cyan 400
+      sky: ['#00020a', '#000814'], // Void Black to Deep Navy
+      grid: '#00f3ff', // Electric Cyan
+      fog: 'rgba(0, 243, 255, 0.2)', 
+      aurora: '#0047ff' // Deep Blue
     },
     obstacleSpeed: 1.0,
     spawnRate: 1.0,
@@ -41,11 +41,12 @@ export const LEVELS: LevelConfig[] = [
   {
     name: "SECTOR 02", 
     subtext: "SYNTHWAVE CITY",
+    // Purple/Pink neon aesthetic
     colors: { 
-      sky: ['#2e1065', '#4c1d95'], // Violet 950 to Violet 900
-      grid: '#d946ef', // Fuchsia 500
-      fog: 'rgba(192, 38, 211, 0.4)',
-      aurora: '#f0abfc' // Fuchsia 300
+      sky: ['#0a0014', '#1a0029'], 
+      grid: '#bc13fe', // Neon Purple
+      fog: 'rgba(188, 19, 254, 0.3)',
+      aurora: '#ff00ff' // Magenta
     },
     obstacleSpeed: 1.2,
     spawnRate: 1.2,
@@ -53,11 +54,12 @@ export const LEVELS: LevelConfig[] = [
   {
     name: "SECTOR 03", 
     subtext: "INDUSTRIAL CORE",
+    // Laser Red/Orange
     colors: { 
-      sky: ['#450a0a', '#7f1d1d'], // Red 950 to Red 900
-      grid: '#f87171', // Red 400
-      fog: 'rgba(220, 38, 38, 0.4)',
-      aurora: '#fca5a5'
+      sky: ['#140000', '#290000'], 
+      grid: '#ff3d00', // Neon Red/Orange
+      fog: 'rgba(255, 61, 0, 0.2)',
+      aurora: '#ff9100'
     },
     obstacleSpeed: 1.4,
     spawnRate: 1.3, 
@@ -65,11 +67,12 @@ export const LEVELS: LevelConfig[] = [
   {
     name: "SECTOR 04", 
     subtext: "THE MATRIX VOID",
+    // Hacker Green/Teal
     colors: { 
-      sky: ['#022c22', '#115e59'], // Teal 950 to Teal 800
-      grid: '#10b981', // Emerald 500
-      fog: 'rgba(16, 185, 129, 0.4)',
-      aurora: '#34d399' // Emerald 400
+      sky: ['#001405', '#00290a'], 
+      grid: '#00ff41', // Matrix Green
+      fog: 'rgba(0, 255, 65, 0.2)',
+      aurora: '#00ff9d' // Spring Green
     },
     obstacleSpeed: 1.6,
     spawnRate: 1.5,
@@ -77,11 +80,12 @@ export const LEVELS: LevelConfig[] = [
   {
     name: "CHRONOS", 
     subtext: "TEMPORAL GATE",
+    // Pure White/Blue Ascension
     colors: { 
       sky: ['#000000', '#ffffff'], 
       grid: '#ffffff', 
-      fog: 'rgba(255,255,255,0.2)',
-      aurora: '#ffffff'
+      fog: 'rgba(255,255,255,0.4)',
+      aurora: '#00f3ff'
     },
     obstacleSpeed: 0, 
     spawnRate: 0,
