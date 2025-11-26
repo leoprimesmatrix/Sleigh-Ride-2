@@ -83,20 +83,29 @@ const App: React.FC = () => {
   };
 
   const verifyPassword = async () => {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(passwordInput);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      if (hashHex === PASSWORD_HASH) {
-          setIsDebugUnlocked(true);
-          setShowPasswordModal(false);
-          setShowDebugMenu(true);
-          setPasswordInput("");
-      } else {
-          alert("ACCESS DENIED");
-          setPasswordInput("");
+      try {
+        const encoder = new TextEncoder();
+        // Normalize input: trim whitespace and convert to lowercase
+        const normalizedInput = passwordInput.trim().toLowerCase();
+        const data = encoder.encode(normalizedInput);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        console.log("Debug Input Hash:", hashHex); // For developer reference
+
+        if (hashHex === PASSWORD_HASH) {
+            setIsDebugUnlocked(true);
+            setShowPasswordModal(false);
+            setShowDebugMenu(true);
+            setPasswordInput("");
+        } else {
+            alert("ACCESS DENIED");
+            setPasswordInput("");
+        }
+      } catch (e) {
+        console.error("Crypto error", e);
+        alert("SECURITY SYSTEM ERROR");
       }
   };
 
@@ -143,6 +152,7 @@ const App: React.FC = () => {
                     type="password" 
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && verifyPassword()}
                     className="w-full bg-black border border-slate-700 text-green-500 p-2 mb-4 font-mono focus:outline-none focus:border-green-500"
                     placeholder="ENTER PASSPHRASE"
                     autoFocus
