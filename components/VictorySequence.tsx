@@ -27,8 +27,8 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
              <div className="absolute w-[300px] h-[300px] border-4 border-white rounded-full animate-[spin_4s_linear_infinite_reverse] shadow-[0_0_30px_rgba(255,255,255,0.2)]"></div>
              <div className="text-center z-10">
                  <Clock size={64} className="mx-auto mb-4 text-cyan-400 drop-shadow-[0_0_20px_rgba(0,243,255,1)]" />
-                 <h1 className="text-2xl tracking-[0.5em] text-cyan-100 uppercase text-shadow-glow">Chronos Engine</h1>
-                 <p className="text-xs text-cyan-500 mt-2 tracking-widest">TARGET DATE: 0001 AD</p>
+                 <h1 className="text-2xl tracking-[0.5em] text-cyan-100 uppercase text-shadow-glow">CHRONOS ENGINE</h1>
+                 <p className="text-xs text-cyan-500 mt-2 tracking-widest">STATUS: ACTIVATING</p>
              </div>
           </div>
       )}
@@ -39,19 +39,19 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
       {/* Stage 3-4: The Reveal */}
       <div className={`absolute inset-0 bg-[#00020a] flex flex-col items-center justify-center transition-opacity duration-1000 ${stage >= 3 ? 'opacity-100' : 'opacity-0'}`}>
           <p className="text-xl text-cyan-100 italic mb-8 max-w-lg text-center leading-relaxed drop-shadow-[0_0_10px_rgba(0,243,255,0.5)]">
-              "History is gone. So I will rewrite it."
+              "The past is just another program waiting to be run."
           </p>
           
           {stage >= 4 && (
             <div className="mt-8 text-center animate-fade-in-up">
-                <h1 className="text-6xl font-bold text-white mb-4 drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">YEAR 0</h1>
-                <p className="text-cyan-600 text-sm mb-12 uppercase tracking-[0.5em]">The Cycle Begins</p>
+                <h1 className="text-6xl font-bold text-white mb-4 drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">Sleigh Ride 1</h1>
+                <p className="text-cyan-600 text-sm mb-12 uppercase tracking-[0.5em]">DESTINATION: 2024 AD</p>
                 
                 <button 
                     onClick={onRestart}
                     className="text-cyan-400 hover:text-white border-b border-cyan-400 hover:border-white pb-1 transition-all uppercase tracking-widest text-xs hover:shadow-[0_5px_10px_-5px_rgba(255,255,255,0.5)]"
                 >
-                    System Reset
+                    Initialize Loop
                 </button>
             </div>
           )}

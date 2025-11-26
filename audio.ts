@@ -1,22 +1,24 @@
 
 
-// Audio Engine for Sleigh Ride 2: Brave New World (Tech/Sci-Fi Overhaul)
+// Audio Engine for Sleigh Ride 2: Brave New World
 
 export class SoundManager {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
   
-  // Dynamic Engine Loop
+  // Phase Loop
+  private phaseOsc: OscillatorNode | null = null;
+  private phaseGain: GainNode | null = null;
+
+  // Engine Loop
   private engineOsc: OscillatorNode | null = null;
   private engineMod: OscillatorNode | null = null;
   private engineGain: GainNode | null = null;
 
-  // Ending Music
+  // Music
   private endingAudio: HTMLAudioElement | null = null;
   private musicFadeInterval: number | null = null;
-
-  // Biome Music (Ambience)
   private bgmTracks: Map<string, HTMLAudioElement> = new Map();
   private currentBgm: HTMLAudioElement | null = null;
 
@@ -62,6 +64,7 @@ export class SoundManager {
     this.sfxGain.connect(this.masterGain);
 
     this.startEngineLoop();
+    this.startPhaseLoop(); // Initialize phase sound (muted initially)
     
     if (this.endingAudio) this.endingAudio.load();
     this.bgmTracks.forEach(track => track.load());
@@ -128,125 +131,44 @@ export class SoundManager {
       }, stepTime);
   }
 
-  // --- SFX Generators ---
+  // --- SFX ---
 
-  // Laser Shot
-  playLaser() {
+  playPhaseActivate() {
+    if (!this.ctx || !this.sfxGain) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.frequency.setValueAtTime(200, t);
+    osc.frequency.exponentialRampToValueAtTime(800, t + 0.2);
+    osc.type = 'sine';
+
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.linearRampToValueAtTime(0, t + 0.2);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start();
+    osc.stop(t + 0.2);
+  }
+
+  playScanSuccess() {
       if (!this.ctx || !this.sfxGain) return;
       const t = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
       osc.frequency.setValueAtTime(800, t);
-      osc.frequency.exponentialRampToValueAtTime(100, t + 0.1);
-      osc.type = 'sawtooth';
+      osc.frequency.linearRampToValueAtTime(1200, t + 0.1);
+      osc.type = 'sine';
 
       gain.gain.setValueAtTime(0.1, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+      gain.gain.linearRampToValueAtTime(0, t + 0.1);
 
       osc.connect(gain);
       gain.connect(this.sfxGain);
       osc.start();
       osc.stop(t + 0.1);
-  }
-
-  // Explosion
-  playExplosion() {
-      if (!this.ctx || !this.sfxGain) return;
-      const t = this.ctx.currentTime;
-      const bufferSize = this.ctx.sampleRate * 0.5;
-      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = buffer;
-
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(1000, t);
-      filter.frequency.exponentialRampToValueAtTime(100, t + 0.4);
-
-      const gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
-
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.sfxGain);
-      noise.start();
-  }
-
-  // Dash Sound
-  playDash() {
-      if (!this.ctx || !this.sfxGain) return;
-      const t = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.frequency.setValueAtTime(200, t);
-      osc.frequency.linearRampToValueAtTime(800, t + 0.3);
-      osc.type = 'triangle';
-
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.linearRampToValueAtTime(0, t + 0.3);
-
-      osc.connect(gain);
-      gain.connect(this.sfxGain);
-      osc.start();
-      osc.stop(t + 0.3);
-  }
-
-  playThruster() {
-    if (!this.ctx || !this.sfxGain) return;
-    const bufferSize = this.ctx.sampleRate * 0.1;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-    const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
-    
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 800;
-    
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.sfxGain);
-    noise.start();
-  }
-
-  playEMP() {
-    if (!this.ctx || !this.sfxGain) return;
-    const t = this.ctx.currentTime;
-    
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(150, t);
-    osc.frequency.exponentialRampToValueAtTime(0.01, t + 0.5);
-    
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.5, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-
-    const osc2 = this.ctx.createOscillator();
-    osc2.type = 'square';
-    osc2.frequency.setValueAtTime(2000, t);
-    osc2.frequency.exponentialRampToValueAtTime(100, t + 0.3);
-    const gain2 = this.ctx.createGain();
-    gain2.gain.setValueAtTime(0.1, t);
-    gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-
-    osc.connect(gain); gain.connect(this.sfxGain);
-    osc2.connect(gain2); gain2.connect(this.sfxGain);
-    
-    osc.start(); osc.stop(t + 0.5);
-    osc2.start(); osc2.stop(t + 0.3);
   }
 
   playDamage() {
@@ -258,22 +180,22 @@ export class SoundManager {
     const modGain = this.ctx.createGain();
     
     carrier.frequency.value = 100;
-    modulator.frequency.value = 250; 
+    modulator.frequency.value = 50; 
     modGain.gain.setValueAtTime(500, t);
-    modGain.gain.exponentialRampToValueAtTime(1, t + 0.4);
+    modGain.gain.exponentialRampToValueAtTime(1, t + 0.3);
     
     modulator.connect(modGain);
     modGain.connect(carrier.frequency);
     
     const outGain = this.ctx.createGain();
     outGain.gain.setValueAtTime(0.4, t);
-    outGain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    outGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
     
     carrier.connect(outGain);
     outGain.connect(this.sfxGain);
     
     carrier.start(); modulator.start();
-    carrier.stop(t + 0.4); modulator.stop(t + 0.4);
+    carrier.stop(t + 0.3); modulator.stop(t + 0.3);
   }
 
   playCollectData() {
@@ -282,16 +204,16 @@ export class SoundManager {
     const osc = this.ctx.createOscillator();
     osc.type = 'sine';
     
-    osc.frequency.setValueAtTime(880, t);
-    osc.frequency.setValueAtTime(1760, t + 0.05);
+    osc.frequency.setValueAtTime(1200, t);
+    osc.frequency.setValueAtTime(1800, t + 0.05);
     
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.1, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    gain.gain.setValueAtTime(0.05, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
     
     osc.connect(gain);
     gain.connect(this.sfxGain);
-    osc.start(); osc.stop(t + 0.15);
+    osc.start(); osc.stop(t + 0.1);
   }
 
   playLowEnergy() {
@@ -310,7 +232,7 @@ export class SoundManager {
     osc.start(); osc.stop(t + 0.1);
   }
 
-  // --- Engine Loop ---
+  // --- Engine & Phase Loops ---
   private startEngineLoop() {
     if (!this.ctx || !this.sfxGain) return;
     
@@ -342,6 +264,29 @@ export class SoundManager {
     this.engineMod.start();
   }
 
+  private startPhaseLoop() {
+      if (!this.ctx || !this.sfxGain) return;
+      
+      this.phaseOsc = this.ctx.createOscillator();
+      this.phaseOsc.type = 'sine';
+      this.phaseOsc.frequency.value = 100;
+
+      const lfo = this.ctx.createOscillator();
+      lfo.frequency.value = 15; // Fast vibrato
+      const lfoGain = this.ctx.createGain();
+      lfoGain.gain.value = 50;
+      lfo.connect(lfoGain);
+      lfoGain.connect(this.phaseOsc.frequency);
+      lfo.start();
+
+      this.phaseGain = this.ctx.createGain();
+      this.phaseGain.gain.value = 0;
+
+      this.phaseOsc.connect(this.phaseGain);
+      this.phaseGain.connect(this.sfxGain);
+      this.phaseOsc.start();
+  }
+
   setEnginePitch(intensity: number) {
     if (this.ctx && this.engineOsc && this.engineGain && this.engineMod) {
       const pitch = 50 + (intensity * 100); 
@@ -353,6 +298,13 @@ export class SoundManager {
       this.engineMod.frequency.setTargetAtTime(rumble, t, 0.1);
       this.engineGain.gain.setTargetAtTime(vol, t, 0.1);
     }
+  }
+
+  setPhaseVolume(isActive: boolean) {
+      if (this.ctx && this.phaseGain) {
+          const t = this.ctx.currentTime;
+          this.phaseGain.gain.setTargetAtTime(isActive ? 0.3 : 0, t, 0.1);
+      }
   }
 
   playEndingMusic(startOffsetSeconds: number = 0, fadeDurationSeconds: number = 10) {

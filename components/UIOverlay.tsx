@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Battery, Zap, Shield, AlertTriangle, Database, Activity, Crosshair } from 'lucide-react';
+import { Battery, Zap, Shield, AlertTriangle, Database, Activity, Eye } from 'lucide-react';
 import { DialogueLine } from '../types.ts';
 
 interface UIOverlayProps {
@@ -13,21 +13,15 @@ interface UIOverlayProps {
   score: number;
   activeDialogue: DialogueLine | null;
   activeLog: string | null;
-  isShielded: boolean;
-  hyperMode?: boolean;
+  isPhasing: boolean;
   combo: number;
 }
 
 const UIOverlay: React.FC<UIOverlayProps> = ({
   integrity, energy, progress, timeLeft, currentLevelName, currentLevelSub,
-  score, activeDialogue, activeLog, isShielded, hyperMode, combo
+  score, activeDialogue, activeLog, isPhasing, combo
 }) => {
   
-  const formatTime = (s: number) => {
-      const m = Math.floor(s/60); const sc = Math.floor(s%60);
-      return `${m < 10 ? '0'+m : m}:${sc < 10 ? '0'+sc : sc}`;
-  };
-
   return (
     <div className="absolute inset-0 flex flex-col justify-between p-6 z-20 font-mono text-cyan-400 select-none pointer-events-none">
       
@@ -42,16 +36,16 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                 <div className="w-full h-2 bg-black rounded-sm overflow-hidden border border-cyan-900 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
                     <div className={`h-full transition-all duration-300 ${integrity < 30 ? "bg-red-500 shadow-[0_0_10px_#ef4444]" : "bg-emerald-500 shadow-[0_0_10px_#10b981]"}`} style={{width: `${integrity}%`}} />
                 </div>
-                <span className="text-xs tracking-wider">HULL</span>
+                <span className="text-xs tracking-wider">INTEGRITY</span>
             </div>
 
-            {/* Energy */}
+            {/* Phase Energy */}
             <div className="flex items-center gap-2">
-                <Zap size={16} className={energy < 30 ? "text-yellow-500 animate-pulse" : "text-cyan-400"} />
+                <Zap size={16} className={energy < 20 ? "text-yellow-500 animate-pulse" : "text-fuchsia-400"} />
                 <div className="w-full h-2 bg-black rounded-sm overflow-hidden border border-cyan-900 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
-                    <div className="h-full bg-cyan-400 transition-all duration-100 shadow-[0_0_10px_#00f3ff]" style={{width: `${energy}%`}} />
+                    <div className="h-full bg-fuchsia-400 transition-all duration-100 shadow-[0_0_10px_#bc13fe]" style={{width: `${energy}%`}} />
                 </div>
-                <span className="text-xs tracking-wider">DASH</span>
+                <span className="text-xs tracking-wider text-fuchsia-400">PHASE_FLUX</span>
             </div>
          </div>
 
@@ -63,25 +57,24 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                          <span className="text-4xl font-black italic text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]">
                              {combo}x
                          </span>
-                         <span className="text-xs text-yellow-200 block text-center tracking-[0.3em]">SYNC RATE</span>
+                         <span className="text-xs text-yellow-200 block text-center tracking-[0.3em]">DATA SYNC</span>
                      </div>
                  )}
                  {combo <= 1 && (
                      <div className="text-3xl font-bold tracking-widest text-slate-700 drop-shadow-[0_0_10px_rgba(0,243,255,0.1)]">
-                         SYNC
+                         SCAN
                      </div>
                  )}
              </div>
              
-             <div className="flex gap-2 mt-2">
-               {isShielded && <div className="text-[10px] text-fuchsia-400 border border-fuchsia-500 px-2 rounded animate-pulse shadow-[0_0_10px_#d946ef]">PHASE SHIFT</div>}
-               {hyperMode && <div className="text-[10px] text-yellow-400 border border-yellow-500 px-2 rounded animate-pulse shadow-[0_0_10px_#facc15]">HYPER_VELOCITY</div>}
+             <div className="flex gap-2 mt-2 h-6">
+               {isPhasing && <div className="text-[10px] text-fuchsia-400 border border-fuchsia-500 px-2 rounded animate-pulse shadow-[0_0_10px_#d946ef] bg-fuchsia-900/50">GHOST_MODE_ACTIVE</div>}
              </div>
          </div>
 
          {/* Right: Score */}
          <div className="text-right">
-             <div className="text-xs text-cyan-600 tracking-widest">DATA_HARVEST</div>
+             <div className="text-xs text-cyan-600 tracking-widest">DATA_RECOVERED</div>
              <div className="text-xl text-white font-bold drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">{score.toFixed(0)}</div>
          </div>
       </div>
@@ -91,17 +84,12 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           <div className="absolute top-24 right-10 animate-slide-in-right">
               <div className="bg-black/80 border-l-4 border-yellow-500 p-4 max-w-sm shadow-[0_0_20px_rgba(0,0,0,0.8)] backdrop-blur">
                   <div className="flex items-center gap-2 text-yellow-400 text-xs font-bold mb-1 tracking-widest">
-                      <Database size={12}/> DECRYPTED LOG
+                      <Database size={12}/> DATA FRAGMENT
                   </div>
                   <p className="text-sm text-yellow-100 italic">"{activeLog}"</p>
               </div>
           </div>
       )}
-
-      {/* Crosshair Overlay (Visual Only) */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-          <Crosshair size={200} className="text-cyan-500 animate-[spin_10s_linear_infinite]" />
-      </div>
 
       {/* Bottom Dialogue (Terminal Style) */}
       {activeDialogue && (
@@ -126,7 +114,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           </div>
           
           <div className="flex flex-col items-end gap-1 w-1/3">
-              <span className="text-cyan-600">Distance to Source</span>
+              <span className="text-cyan-600">Proximity to Zero Point</span>
               <div className="w-full h-1 bg-black border border-cyan-900">
                   <div className="h-full bg-white transition-all duration-500 shadow-[0_0_10px_#fff]" style={{width: `${Math.min(100, progress)}%`}} />
               </div>

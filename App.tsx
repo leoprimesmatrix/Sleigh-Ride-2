@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import GameCanvas from './components/GameCanvas.tsx';
 import VictorySequence from './components/VictorySequence.tsx';
 import { GameState, GameMode, DebugCommand } from './types.ts';
-import { Terminal, Cpu, Power, ShieldAlert, Radio, Database, XCircle, Lock, FastForward, Eye, Zap, Gauge, Crosshair } from 'lucide-react';
+import { Cpu, Power, ShieldAlert, Radio, Database, XCircle, FastForward, Eye, Zap, Gauge, Ghost } from 'lucide-react';
 import { soundManager } from './audio.ts';
 
 const App: React.FC = () => {
@@ -34,13 +34,13 @@ const App: React.FC = () => {
       setIsLoading(true);
       
       const logs = [
-          "INITIALIZING KERNEL...",
-          "MOUNTING FILE SYSTEM...",
-          "LOADING PHYSICS ENGINE... OK",
-          "WEAPONS FREE... OK",
-          "CONNECTING TO NEURAL NET...",
-          "DECRYPTING MISSION FILES...",
-          "TARGET LOCKED: NORTH POLE",
+          "INITIALIZING ARCHAEOLOGY KERNEL...",
+          "MOUNTING SENSOR ARRAYS...",
+          "PHASE DRIVE CHARGING... OK",
+          "WEAPONS SYSTEMS... OFFLINE [CORRUPTED]",
+          "CONNECTING TO ANCIENT NET...",
+          "DECRYPTING HISTORY FILES...",
+          "SEARCH PARAMETER: 'SANTA'",
           "SYSTEM READY."
       ];
       
@@ -92,12 +92,12 @@ const App: React.FC = () => {
       <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(circle, transparent 50%, rgba(0,2,10,0.95) 100%)' }}></div>
 
       <div className="absolute top-4 left-4 text-[10px] text-cyan-900 flex flex-col gap-1 z-50 cursor-pointer hover:text-cyan-400 transition-colors" onClick={handleSecretClick}>
-          <div>SYS_ID: 0x94F2A</div>
-          <div>MEM_FREE: 4092TB</div>
-          <div>UPTIME: 9999:59:59</div>
+          <div>SYS_ID: 0xKRAMPUS</div>
+          <div>DATE: 2941.12.24</div>
+          <div>STATUS: SEEKER</div>
       </div>
       <div className="absolute bottom-4 right-4 text-[10px] text-cyan-900 text-right z-0">
-          <div>ENCRYPTION: AES-4096</div>
+          <div>HISTORY: FRAGMENTED</div>
           <div>NET: OFFLINE</div>
           <div>LOC: UNKNOWN</div>
       </div>
@@ -138,7 +138,7 @@ const App: React.FC = () => {
                     <h2 className="text-lg md:text-2xl text-cyan-400 tracking-[0.3em] uppercase font-bold text-shadow-glow">
                         BRAVE NEW WORLD
                     </h2>
-                    <span className="text-cyan-500 text-[0.6rem] md:text-xs tracking-[0.5em] animate-pulse">ACTIVE</span>
+                    <span className="text-cyan-500 text-[0.6rem] md:text-xs tracking-[0.5em] animate-pulse">SEEKER</span>
                 </div>
             </div>
 
@@ -151,8 +151,8 @@ const App: React.FC = () => {
                 <div className="p-6 flex flex-col gap-4">
                     <div className="text-left text-xs text-cyan-700 font-mono mb-4">
                         <p>> YEAR: 2941 AD</p>
-                        <p>> UNIT: KRAMPUS-7</p>
-                        <p>> MISSION: COMBAT RUN</p>
+                        <p>> OBJECTIVE: FIND "THE RED SAINT"</p>
+                        <p>> WARNING: DEFENSIVE CAPABILITIES ZERO</p>
                         <p>> <span className="animate-pulse">_</span></p>
                     </div>
 
@@ -160,7 +160,7 @@ const App: React.FC = () => {
                         <div className="absolute inset-0 w-full h-full bg-cyan-500/10 scale-x-0 group-hover/btn:scale-x-100 transition-transform origin-left duration-300"></div>
                         <div className="flex items-center justify-center gap-3 relative z-10">
                             <Power className="text-cyan-500 group-hover/btn:text-white transition-colors" size={20} />
-                            <span className="text-lg tracking-[0.2em] group-hover/btn:text-white transition-colors font-bold">ENGAGE</span>
+                            <span className="text-lg tracking-[0.2em] group-hover/btn:text-white transition-colors font-bold">INITIATE SEARCH</span>
                         </div>
                     </button>
 
@@ -168,18 +168,18 @@ const App: React.FC = () => {
                         <div className="absolute inset-0 w-full h-full bg-yellow-500/10 scale-x-0 group-hover/btn:scale-x-100 transition-transform origin-left duration-300"></div>
                         <div className="flex items-center justify-center gap-3 relative z-10">
                             <Database className="text-yellow-600 group-hover/btn:text-white transition-colors" size={18} />
-                            <span className="text-sm tracking-[0.2em] group-hover/btn:text-white transition-colors font-bold">DATABASE</span>
+                            <span className="text-sm tracking-[0.2em] group-hover/btn:text-white transition-colors font-bold">ARCHIVES</span>
                         </div>
                     </button>
                     
                     <div className="grid grid-cols-2 gap-2 mt-4">
                         <div className="bg-slate-900/50 border border-slate-800 p-2 text-xs text-slate-500 text-center hover:border-cyan-500/30 transition-colors">
-                            <span className="text-cyan-600 font-bold block mb-1">ASSAULT</span>
-                            AUTO-FIRE ACTIVE
+                            <span className="text-cyan-600 font-bold block mb-1">NAVIGATE</span>
+                            [SPACE] / [TAP]
                         </div>
                          <div className="bg-slate-900/50 border border-slate-800 p-2 text-xs text-slate-500 text-center hover:border-cyan-500/30 transition-colors">
-                            <span className="text-cyan-600 font-bold block mb-1">PHASE DASH</span>
-                            [SHIFT] / [Z]
+                            <span className="text-fuchsia-500 font-bold block mb-1">PHASE SHIFT</span>
+                            [HOLD SHIFT/Z]
                         </div>
                     </div>
                 </div>
@@ -192,7 +192,7 @@ const App: React.FC = () => {
              <div className="flex items-center justify-between border-b border-cyan-900/50 pb-4 mb-4">
                  <div className="flex items-center gap-4">
                      <Database className="text-yellow-500 animate-pulse" size={24} />
-                     <h2 className="text-2xl font-bold tracking-widest text-white">SCAVENGER DATABASE</h2>
+                     <h2 className="text-2xl font-bold tracking-widest text-white">RECOVERED DATA</h2>
                  </div>
                  <button onClick={() => setGameState(GameState.MENU)} className="text-slate-400 hover:text-white flex items-center gap-2 text-xs tracking-widest uppercase border border-slate-700 px-4 py-2 hover:bg-slate-800 transition-colors">
                      <XCircle size={16} /> Close Terminal
@@ -201,39 +201,35 @@ const App: React.FC = () => {
 
              <div className="flex-1 overflow-y-auto grid md:grid-cols-2 gap-6 pr-2 custom-scrollbar">
                  <div className="space-y-6">
-                     <h3 className="text-cyan-500 border-b border-cyan-900 pb-1 text-sm tracking-widest uppercase mb-4">Combat Systems</h3>
+                     <h3 className="text-cyan-500 border-b border-cyan-900 pb-1 text-sm tracking-widest uppercase mb-4">Survival Protocols</h3>
                      
-                     <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-cyan-500/50 transition-colors">
-                         <div className="w-12 h-12 rounded-full border border-cyan-500 flex items-center justify-center bg-cyan-900/20 shrink-0">
-                             <Crosshair size={20} className="text-cyan-400" />
-                         </div>
-                         <div>
-                             <h4 className="text-white font-bold text-sm">AUTO-CANNON</h4>
-                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Standard issue plasma repeater. Fires automatically. Overclock powerups increase fire rate.</p>
-                         </div>
-                     </div>
-
                      <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start hover:border-fuchsia-500/50 transition-colors">
                          <div className="w-12 h-12 border border-fuchsia-500 flex items-center justify-center bg-fuchsia-900/20 shrink-0">
-                             <Zap size={20} className="text-fuchsia-400" />
+                             <Ghost size={20} className="text-fuchsia-400" />
                          </div>
                          <div>
-                             <h4 className="text-white font-bold text-sm">PHASE DASH [SHIFT]</h4>
-                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Consumes DASH energy to surge forward. <span className="text-fuchsia-400">Invulnerable</span> while dashing. Destroys all obstacles on contact.</p>
+                             <h4 className="text-white font-bold text-sm">PHASE SHIFT [HOLD SHIFT]</h4>
+                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                                 Become a digital ghost. Pass through walls and drones unharmed. 
+                                 <br/><br/>
+                                 <span className="text-fuchsia-400">WARNING:</span> Drains Phase Flux rapidly. Passing through an obstacle restores energy and decrypts data.
+                             </p>
                          </div>
                      </div>
                  </div>
 
                  <div className="space-y-6">
-                     <h3 className="text-red-500 border-b border-red-900 pb-1 text-sm tracking-widest uppercase mb-4">Threats</h3>
+                     <h3 className="text-yellow-500 border-b border-yellow-900 pb-1 text-sm tracking-widest uppercase mb-4">Historical Fragments</h3>
 
                      <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
-                         <div className="w-12 h-12 rounded-full border border-red-500 flex items-center justify-center bg-red-900/20 shrink-0">
-                            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                         <div className="w-12 h-12 rounded-full border border-slate-500 flex items-center justify-center bg-slate-900/20 shrink-0">
+                            <div className="text-xs text-slate-500 font-bold">LOG</div>
                          </div>
                          <div>
-                             <h4 className="text-red-400 font-bold text-sm">HUNTER KILLER</h4>
-                             <p className="text-slate-400 text-xs mt-1 leading-relaxed">Tracks player vertical movement and fires tracking shots. Prioritize destruction.</p>
+                             <h4 className="text-slate-300 font-bold text-sm">THE GREAT FORGETTING</h4>
+                             <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                                 "Centuries ago, the Red Saint chose to end the cycle. He found a purpose beyond the gifts. The world moved on, and the memory of 'Christmas' faded into static."
+                             </p>
                          </div>
                      </div>
                  </div>
@@ -287,13 +283,13 @@ const App: React.FC = () => {
                 <div className="absolute inset-0 bg-black/90 z-50 flex flex-col items-center justify-center font-mono">
                     <div className="border border-red-500/50 p-8 bg-red-950/30 backdrop-blur text-center max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.2)]">
                         <ShieldAlert size={64} className="text-red-500 mb-6 mx-auto animate-pulse" />
-                        <h2 className="text-5xl text-red-500 font-bold tracking-widest mb-2 glitch" data-text="CRITICAL FAILURE">CRITICAL FAILURE</h2>
+                        <h2 className="text-5xl text-red-500 font-bold tracking-widest mb-2 glitch" data-text="SYNC LOST">SYNC LOST</h2>
                         <div className="h-px w-full bg-red-900 my-4"></div>
-                        <p className="text-red-300/80 mb-8 tracking-wider">SIGNAL LOST. HULL COMPROMISED.</p>
+                        <p className="text-red-300/80 mb-8 tracking-wider">HULL CRITICAL. HISTORY REMAINS BURIED.</p>
                         
                         <button onClick={restart} className="group px-8 py-3 border border-red-600 text-red-500 hover:bg-red-600 hover:text-white transition-all uppercase tracking-widest flex items-center gap-2 mx-auto hover:shadow-[0_0_20px_rgba(239,68,68,0.5)]">
                             <Radio size={16} className="group-hover:animate-ping"/>
-                            RE-INITIALIZE
+                            REBOOT SEQUENCE
                         </button>
                     </div>
                 </div>
