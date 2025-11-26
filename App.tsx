@@ -89,19 +89,19 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-black flex flex-col items-center justify-center font-mono text-slate-300 relative select-none">
+    <div className="h-screen w-screen overflow-hidden bg-[#020617] flex flex-col items-center justify-center font-mono text-slate-300 relative select-none">
       
       {/* CRT Scanline Overlay */}
-      <div className="absolute inset-0 scanlines z-50 pointer-events-none opacity-20"></div>
+      <div className="absolute inset-0 scanlines z-50 pointer-events-none opacity-30"></div>
       
       {/* Moving Holographic Grid */}
-      <div className="absolute inset-0 holo-grid opacity-20 pointer-events-none transform perspective-3d rotate-x-60"></div>
+      <div className="absolute inset-0 holo-grid opacity-30 pointer-events-none transform perspective-3d rotate-x-60"></div>
 
       {/* Vignette */}
-      <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(circle, transparent 60%, rgba(0,0,0,0.8) 100%)' }}></div>
+      <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(circle, transparent 60%, rgba(0,0,0,0.95) 100%)' }}></div>
 
       {/* Floating System Deco - SECRET TRIGGER */}
-      <div className="absolute top-4 left-4 text-[10px] text-cyan-900 flex flex-col gap-1 z-50 cursor-pointer hover:text-cyan-600 transition-colors" onClick={handleSecretClick}>
+      <div className="absolute top-4 left-4 text-[10px] text-cyan-900 flex flex-col gap-1 z-50 cursor-pointer hover:text-cyan-500 transition-colors" onClick={handleSecretClick}>
           <div>SYS_ID: 0x94F2A</div>
           <div>MEM_FREE: 4092TB</div>
           <div>UPTIME: 9999:59:59</div>
@@ -114,7 +114,7 @@ const App: React.FC = () => {
 
       {/* Debug Menu Overlay */}
       {showDebugMenu && (
-          <div className="absolute top-20 left-20 z-[90] bg-black/95 border border-green-500 p-4 w-64 shadow-2xl">
+          <div className="absolute top-20 left-20 z-[90] bg-black/95 border border-green-500 p-4 w-64 shadow-2xl backdrop-blur-md">
                <div className="flex justify-between items-center mb-4 border-b border-green-900 pb-2">
                    <h3 className="text-green-500 font-bold tracking-widest text-xs">DEBUG_TERMINAL</h3>
                    <button onClick={() => setShowDebugMenu(false)} className="text-green-700 hover:text-green-400"><XCircle size={14}/></button>
@@ -139,7 +139,7 @@ const App: React.FC = () => {
                     <span className="glitch absolute inset-0" data-text="SLEIGH RIDE 2">SLEIGH RIDE 2</span>
                     <span className="opacity-0">SLEIGH RIDE 2</span>
                 </div>
-                <div className="flex items-center justify-between w-full mt-2 border-t border-b border-cyan-800 py-1">
+                <div className="flex items-center justify-between w-full mt-2 border-t border-b border-cyan-800/50 py-1">
                     <span className="text-cyan-500 text-[0.6rem] md:text-xs tracking-[0.5em] animate-pulse">PROTOCOL:</span>
                     <h2 className="text-lg md:text-2xl text-cyan-400 tracking-[0.3em] uppercase font-bold text-shadow-glow">
                         BRAVE NEW WORLD
@@ -149,7 +149,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Main Menu Panel */}
-            <div className="w-full max-w-md bg-black/60 border border-slate-700 backdrop-blur-sm p-1 relative group shadow-2xl">
+            <div className="w-full max-w-md bg-black/80 border border-slate-800 backdrop-blur-md p-1 relative group shadow-[0_0_30px_rgba(6,182,212,0.1)]">
                 {/* Corner Accents */}
                 <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-cyan-500"/>
                 <div className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-cyan-500"/>
@@ -164,7 +164,7 @@ const App: React.FC = () => {
                         <p>> <span className="animate-pulse">_</span></p>
                     </div>
 
-                    <button onClick={handleStart} className="relative overflow-hidden group/btn bg-slate-900 border border-slate-600 hover:border-cyan-400 py-4 px-8 transition-all duration-300">
+                    <button onClick={handleStart} className="relative overflow-hidden group/btn bg-slate-900 border border-slate-700 hover:border-cyan-400 py-4 px-8 transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]">
                         <div className="absolute inset-0 w-full h-full bg-cyan-500/10 scale-x-0 group-hover/btn:scale-x-100 transition-transform origin-left duration-300"></div>
                         <div className="flex items-center justify-center gap-3 relative z-10">
                             <Power className="text-cyan-500 group-hover/btn:text-white transition-colors" size={20} />
@@ -172,7 +172,7 @@ const App: React.FC = () => {
                         </div>
                     </button>
 
-                    <button onClick={() => setGameState(GameState.INFO)} className="relative overflow-hidden group/btn bg-slate-900 border border-slate-600 hover:border-yellow-500 py-3 px-8 transition-all duration-300">
+                    <button onClick={() => setGameState(GameState.INFO)} className="relative overflow-hidden group/btn bg-slate-900 border border-slate-700 hover:border-yellow-500 py-3 px-8 transition-all duration-300 hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]">
                         <div className="absolute inset-0 w-full h-full bg-yellow-500/10 scale-x-0 group-hover/btn:scale-x-100 transition-transform origin-left duration-300"></div>
                         <div className="flex items-center justify-center gap-3 relative z-10">
                             <Database className="text-yellow-600 group-hover/btn:text-white transition-colors" size={18} />
@@ -196,7 +196,7 @@ const App: React.FC = () => {
       )}
 
       {gameState === GameState.INFO && (
-          <div className="z-30 w-full max-w-4xl h-[80vh] bg-black/90 border border-slate-700 backdrop-blur-md p-6 relative flex flex-col overflow-hidden">
+          <div className="z-30 w-full max-w-4xl h-[80vh] bg-black/95 border border-slate-700 backdrop-blur-md p-6 relative flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)]">
              {/* Header */}
              <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-4">
                  <div className="flex items-center gap-4">
@@ -246,7 +246,7 @@ const App: React.FC = () => {
 
                  {/* Powerups */}
                  <div className="space-y-6">
-                     <h3 className="text-green-500 border-b border-green-900 pb-1 text-sm tracking-widest uppercase mb-4">Resources</h3>
+                     <h3 className="text-emerald-500 border-b border-emerald-900 pb-1 text-sm tracking-widest uppercase mb-4">Resources</h3>
 
                      <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
                          <div className="w-12 h-12 rounded-full border border-cyan-500 flex items-center justify-center bg-cyan-900/20 shrink-0 text-cyan-400">
@@ -259,21 +259,21 @@ const App: React.FC = () => {
                      </div>
 
                      <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
-                         <div className="w-12 h-12 rounded-full border border-green-500 flex items-center justify-center bg-green-900/20 shrink-0 text-green-400">
+                         <div className="w-12 h-12 rounded-full border border-emerald-500 flex items-center justify-center bg-emerald-900/20 shrink-0 text-emerald-400">
                              <div className="text-xl font-bold">+</div>
                          </div>
                          <div>
-                             <h4 className="text-green-400 font-bold text-sm">NANOBOT REPAIR</h4>
+                             <h4 className="text-emerald-400 font-bold text-sm">NANOBOT REPAIR</h4>
                              <p className="text-slate-400 text-xs mt-1 leading-relaxed">Repairs hull integrity by 30%. Critical for survival.</p>
                          </div>
                      </div>
                      
                      <div className="flex gap-4 p-4 bg-slate-900/50 border border-slate-800 items-start">
-                        <div className="w-12 h-12 rounded-full border border-purple-500 flex items-center justify-center bg-purple-900/20 shrink-0 text-purple-400">
+                        <div className="w-12 h-12 rounded-full border border-fuchsia-500 flex items-center justify-center bg-fuchsia-900/20 shrink-0 text-fuchsia-400">
                              <ShieldAlert size={20} />
                          </div>
                          <div>
-                             <h4 className="text-purple-400 font-bold text-sm">PHASE SHIELD</h4>
+                             <h4 className="text-fuchsia-400 font-bold text-sm">PHASE SHIELD</h4>
                              <p className="text-slate-400 text-xs mt-1 leading-relaxed">Provides temporary invulnerability to all damage sources.</p>
                          </div>
                      </div>
@@ -294,11 +294,11 @@ const App: React.FC = () => {
                   <div className="text-xl text-white tracking-widest font-bold glitch" data-text="SYSTEM BOOT">SYSTEM BOOT</div>
               </div>
               
-              <div className="w-full bg-slate-900 h-64 border border-slate-700 p-4 font-mono text-xs overflow-hidden flex flex-col justify-end shadow-[0_0_20px_rgba(8,145,178,0.2)]">
+              <div className="w-full bg-black/90 h-64 border border-slate-700 p-4 font-mono text-xs overflow-hidden flex flex-col justify-end shadow-[0_0_20px_rgba(6,182,212,0.2)]">
                   {bootLog.map((log, i) => (
                       <div key={i} className="mb-1">
                           <span className="text-cyan-500 mr-2">{'>'}</span>
-                          <span className={log.includes("OK") ? "text-green-400" : "text-slate-300"}>{log}</span>
+                          <span className={log.includes("OK") ? "text-emerald-400" : "text-slate-300"}>{log}</span>
                       </div>
                   ))}
                   <div className="animate-pulse text-cyan-500">_</div>
@@ -311,7 +311,7 @@ const App: React.FC = () => {
       )}
 
       {(gameState === GameState.PLAYING || gameState === GameState.GAME_OVER || gameState === GameState.VICTORY) && (
-         <div className="relative w-full h-full md:max-w-[1200px] md:max-h-[600px] shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden bg-black z-20 border-2 border-slate-800">
+         <div className="relative w-full h-full md:max-w-[1200px] md:max-h-[600px] shadow-[0_0_50px_rgba(0,0,0,1)] overflow-hidden bg-black z-20 border-2 border-slate-800 rounded-lg">
             <GameCanvas 
               gameState={gameState} 
               gameMode={gameMode} 
@@ -323,20 +323,20 @@ const App: React.FC = () => {
             
             {/* Debug Indicator */}
             {isDebugUnlocked && (
-              <div className="absolute top-2 left-2 text-[10px] text-green-500 border border-green-800 px-2 py-1 bg-black/50 z-50">
+              <div className="absolute top-2 left-2 text-[10px] text-green-500 border border-green-800 px-2 py-1 bg-black/80 z-50">
                 DEBUG_MODE_ACTIVE
               </div>
             )}
             
             {gameState === GameState.GAME_OVER && (
-                <div className="absolute inset-0 bg-black/95 z-50 flex flex-col items-center justify-center font-mono">
-                    <div className="border-4 border-red-600 p-8 bg-red-950/20 backdrop-blur text-center max-w-lg">
+                <div className="absolute inset-0 bg-black/90 z-50 flex flex-col items-center justify-center font-mono">
+                    <div className="border border-red-500/50 p-8 bg-red-950/30 backdrop-blur text-center max-w-lg shadow-[0_0_50px_rgba(239,68,68,0.2)]">
                         <ShieldAlert size={64} className="text-red-500 mb-6 mx-auto animate-pulse" />
                         <h2 className="text-5xl text-red-500 font-bold tracking-widest mb-2 glitch" data-text="CRITICAL FAILURE">CRITICAL FAILURE</h2>
                         <div className="h-px w-full bg-red-900 my-4"></div>
                         <p className="text-red-300/80 mb-8 tracking-wider">SIGNAL LOST. HULL COMPROMISED.</p>
                         
-                        <button onClick={restart} className="group px-8 py-3 border border-red-600 text-red-500 hover:bg-red-600 hover:text-white transition-all uppercase tracking-widest flex items-center gap-2 mx-auto">
+                        <button onClick={restart} className="group px-8 py-3 border border-red-600 text-red-500 hover:bg-red-600 hover:text-white transition-all uppercase tracking-widest flex items-center gap-2 mx-auto hover:shadow-[0_0_20px_rgba(239,68,68,0.5)]">
                             <Radio size={16} className="group-hover:animate-ping"/>
                             RE-INITIALIZE
                         </button>

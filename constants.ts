@@ -15,10 +15,10 @@ export const EMP_RADIUS = 250;
 export const ENERGY_RECHARGE_RATE = 0.1; // Passive recharge
 
 export const POWERUP_COLORS: Record<PowerupType, string> = {
-  [PowerupType.CHARGE]: '#0ea5e9',    // Sky Blue (Energy)
-  [PowerupType.REPAIR]: '#22c55e',    // Green (Health)
-  [PowerupType.OVERCLOCK]: '#f59e0b', // Amber (Speed)
-  [PowerupType.SHIELD]: '#a855f7',    // Purple (Shield)
+  [PowerupType.CHARGE]: '#22d3ee',    // Neon Cyan (Energy)
+  [PowerupType.REPAIR]: '#4ade80',    // Neon Green (Health)
+  [PowerupType.OVERCLOCK]: '#facc15', // Bright Yellow (Speed)
+  [PowerupType.SHIELD]: '#e879f9',    // Neon Pink/Purple (Shield)
   [PowerupType.GOD_MODE]: '#ffd700',  // Gold
 };
 
@@ -27,36 +27,36 @@ export const LEVEL_THRESHOLDS = [0, 25, 50, 75, 96];
 export const LEVELS: LevelConfig[] = [
   {
     name: "SECTOR 01", 
-    subtext: "THE DEAD NETWORK",
+    subtext: "NEON WASTELANDS",
     // Changed to deep blues/purples instead of black
     colors: { 
-      sky: ['#0f172a', '#1e1b4b'], 
-      grid: '#3b82f6', 
-      fog: 'rgba(30, 27, 75, 0.6)',
-      aurora: '#0ea5e9' 
+      sky: ['#020617', '#172554'], // Slate 950 to Blue 950
+      grid: '#06b6d4', // Cyan 500
+      fog: 'rgba(8, 145, 178, 0.4)', // Cyan 700 with alpha
+      aurora: '#22d3ee' // Cyan 400
     },
     obstacleSpeed: 1.0,
     spawnRate: 1.0,
   },
   {
     name: "SECTOR 02", 
-    subtext: "BIOME DECAY",
+    subtext: "SYNTHWAVE CITY",
     colors: { 
-      sky: ['#2e1065', '#4c1d95'], 
-      grid: '#a855f7', 
-      fog: 'rgba(76, 29, 149, 0.6)',
-      aurora: '#d8b4fe'
+      sky: ['#2e1065', '#4c1d95'], // Violet 950 to Violet 900
+      grid: '#d946ef', // Fuchsia 500
+      fog: 'rgba(192, 38, 211, 0.4)',
+      aurora: '#f0abfc' // Fuchsia 300
     },
     obstacleSpeed: 1.2,
     spawnRate: 1.2,
   },
   {
     name: "SECTOR 03", 
-    subtext: "FABRICATION PLANT",
+    subtext: "INDUSTRIAL CORE",
     colors: { 
-      sky: ['#450a0a', '#7f1d1d'], 
-      grid: '#f87171', 
-      fog: 'rgba(127, 29, 29, 0.6)',
+      sky: ['#450a0a', '#7f1d1d'], // Red 950 to Red 900
+      grid: '#f87171', // Red 400
+      fog: 'rgba(220, 38, 38, 0.4)',
       aurora: '#fca5a5'
     },
     obstacleSpeed: 1.4,
@@ -64,12 +64,12 @@ export const LEVELS: LevelConfig[] = [
   },
   {
     name: "SECTOR 04", 
-    subtext: "THE ZERO POINT",
+    subtext: "THE MATRIX VOID",
     colors: { 
-      sky: ['#022c22', '#115e59'], 
-      grid: '#2dd4bf', 
-      fog: 'rgba(17, 94, 89, 0.6)',
-      aurora: '#5eead4'
+      sky: ['#022c22', '#115e59'], // Teal 950 to Teal 800
+      grid: '#10b981', // Emerald 500
+      fog: 'rgba(16, 185, 129, 0.4)',
+      aurora: '#34d399' // Emerald 400
     },
     obstacleSpeed: 1.6,
     spawnRate: 1.5,

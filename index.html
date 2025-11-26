@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,7 +11,7 @@
     
     body {
       font-family: 'Share Tech Mono', monospace;
-      background-color: #000;
+      background-color: #020617; /* Slate 950 / Void */
       color: #e2e8f0;
       overflow: hidden;
     }
@@ -27,6 +26,7 @@
       color: white;
       font-family: 'Orbitron', sans-serif;
       letter-spacing: 0.1em;
+      text-shadow: 0 0 10px rgba(6, 182, 212, 0.8), 0 0 20px rgba(6, 182, 212, 0.4);
     }
 
     .glitch::before,
@@ -37,20 +37,19 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: #000;
+      background: #020617;
     }
 
     .glitch::before {
       left: 2px;
-      text-shadow: -1px 0 #ff00c1;
-      /* Increased clip width from 450px to 9999px to prevent title cutoff */
+      text-shadow: -1px 0 #d946ef; /* Fuchsia */
       clip: rect(44px, 9999px, 56px, 0);
       animation: glitch-anim 5s infinite linear alternate-reverse;
     }
 
     .glitch::after {
       left: -2px;
-      text-shadow: -1px 0 #00fff9;
+      text-shadow: -1px 0 #06b6d4; /* Cyan */
       clip: rect(44px, 9999px, 56px, 0);
       animation: glitch-anim2 5s infinite linear alternate-reverse;
     }
@@ -109,8 +108,8 @@
         to bottom,
         rgba(255,255,255,0),
         rgba(255,255,255,0) 50%,
-        rgba(0,0,0,0.2) 50%,
-        rgba(0,0,0,0.2)
+        rgba(0,0,0,0.4) 50%, /* Darker scanline */
+        rgba(0,0,0,0.4)
       );
       background-size: 100% 4px;
       animation: scroll 10s linear infinite;
@@ -126,8 +125,8 @@
     /* Hologram Grid */
     .holo-grid {
       background-image: 
-        linear-gradient(rgba(14, 165, 233, 0.2) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(14, 165, 233, 0.2) 1px, transparent 1px);
+        linear-gradient(rgba(6, 182, 212, 0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(6, 182, 212, 0.3) 1px, transparent 1px);
       background-size: 40px 40px;
       perspective: 500px;
       transform-style: preserve-3d;
@@ -137,6 +136,10 @@
     @keyframes grid-move {
       0% { background-position: 0 0; }
       100% { background-position: 40px 40px; }
+    }
+    
+    .text-shadow-glow {
+        text-shadow: 0 0 5px rgba(6, 182, 212, 0.8), 0 0 10px rgba(6, 182, 212, 0.4);
     }
     
     /* Loading Bar Striped */
@@ -162,7 +165,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background-color: #000;
+      background-color: #020617;
       z-index: 9999;
       transition: opacity 0.5s;
     }
@@ -170,11 +173,11 @@
       width: 50px;
       height: 50px;
       border: 3px solid #1e293b;
-      border-top: 3px solid #0ea5e9;
+      border-top: 3px solid #06b6d4;
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin-bottom: 20px;
-      box-shadow: 0 0 15px #0ea5e9;
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.5);
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
@@ -196,9 +199,9 @@
   
   <div id="loader">
     <div class="loader-spinner"></div>
-    <h2 class="font-mono text-xl text-cyan-500 tracking-widest">INITIALIZING_SYSTEM</h2>
-    <p id="loader-status" class="text-slate-500 text-xs mt-2 font-mono">LOADING ASSETS...</p>
-    <div id="error-container" class="hidden mt-4 p-4 bg-red-900/50 border border-red-500 rounded text-red-200 text-xs text-left max-w-md overflow-auto max-h-60 whitespace-pre-wrap font-mono"></div>
+    <h2 class="font-mono text-xl text-cyan-400 tracking-widest text-shadow-glow">INITIALIZING_SYSTEM</h2>
+    <p id="loader-status" class="text-cyan-800 text-xs mt-2 font-mono">LOADING ASSETS...</p>
+    <div id="error-container" class="hidden mt-4 p-4 bg-red-950 border border-red-500 rounded text-red-200 text-xs text-left max-w-md overflow-auto max-h-60 whitespace-pre-wrap font-mono"></div>
   </div>
 
   <script>
