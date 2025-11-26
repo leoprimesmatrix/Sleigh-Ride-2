@@ -6,8 +6,6 @@ import { GameState, GameMode, DebugCommand } from './types.ts';
 import { Terminal, Cpu, Power, ShieldAlert, Radio, Database, XCircle, Lock, FastForward, Eye } from 'lucide-react';
 import { soundManager } from './audio.ts';
 
-const PASSWORD_HASH = "c36a3014c27878347f3b4f65022d4f29135084931a26d71b870566412f5a2873"; // SHA-256 for 'genesis'
-
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.STORY);
@@ -16,8 +14,6 @@ const App: React.FC = () => {
   
   // Debug State
   const [debugClicks, setDebugClicks] = useState(0);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
   const [isDebugUnlocked, setIsDebugUnlocked] = useState(false);
   const [debugCommand, setDebugCommand] = useState<DebugCommand>(null);
   const [showDebugMenu, setShowDebugMenu] = useState(false);
@@ -77,35 +73,10 @@ const App: React.FC = () => {
       const newCount = debugClicks + 1;
       setDebugClicks(newCount);
       if (newCount === 5) {
-          setShowPasswordModal(true);
+          // Direct unlock without password
+          setIsDebugUnlocked(true);
+          setShowDebugMenu(true);
           setDebugClicks(0);
-      }
-  };
-
-  const verifyPassword = async () => {
-      try {
-        const encoder = new TextEncoder();
-        // Normalize input: trim whitespace and convert to lowercase
-        const normalizedInput = passwordInput.trim().toLowerCase();
-        const data = encoder.encode(normalizedInput);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        
-        console.log("Debug Input Hash:", hashHex); // For developer reference
-
-        if (hashHex === PASSWORD_HASH) {
-            setIsDebugUnlocked(true);
-            setShowPasswordModal(false);
-            setShowDebugMenu(true);
-            setPasswordInput("");
-        } else {
-            alert("ACCESS DENIED");
-            setPasswordInput("");
-        }
-      } catch (e) {
-        console.error("Crypto error", e);
-        alert("SECURITY SYSTEM ERROR");
       }
   };
 
@@ -140,30 +111,6 @@ const App: React.FC = () => {
           <div>NET: OFFLINE</div>
           <div>LOC: UNKNOWN</div>
       </div>
-
-      {/* Password Modal */}
-      {showPasswordModal && (
-          <div className="absolute inset-0 z-[100] bg-black/90 flex items-center justify-center">
-              <div className="bg-slate-900 border border-green-500 p-6 w-80 shadow-[0_0_20px_rgba(34,197,94,0.3)]">
-                  <div className="text-green-500 font-bold mb-4 flex items-center gap-2">
-                      <Lock size={16} /> ADMIN ACCESS
-                  </div>
-                  <input 
-                    type="password" 
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && verifyPassword()}
-                    className="w-full bg-black border border-slate-700 text-green-500 p-2 mb-4 font-mono focus:outline-none focus:border-green-500"
-                    placeholder="ENTER PASSPHRASE"
-                    autoFocus
-                  />
-                  <div className="flex justify-end gap-2">
-                      <button onClick={() => setShowPasswordModal(false)} className="text-xs text-slate-500 hover:text-white px-3 py-1">CANCEL</button>
-                      <button onClick={verifyPassword} className="bg-green-900/30 text-green-500 border border-green-700 hover:bg-green-500 hover:text-black px-3 py-1 text-xs">VERIFY</button>
-                  </div>
-              </div>
-          </div>
-      )}
 
       {/* Debug Menu Overlay */}
       {showDebugMenu && (
