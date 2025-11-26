@@ -15,10 +15,10 @@ export enum GameMode {
 }
 
 export enum PowerupType {
-  CHARGE = 'CHARGE',       // Restores Phase Energy
-  REPAIR = 'REPAIR',       // Restores Hull
-  DATA_CACHE = 'DATA_CACHE', // Large Score Boost
-  INVULNERABILITY = 'INVULNERABILITY' // Temporary infinite phase
+  CHARGE = 'CHARGE',       // Restores Spirit
+  REPAIR = 'REPAIR',       // Restores Sleigh Hull
+  MEMORY = 'MEMORY',       // Score Boost
+  INVULNERABILITY = 'INVULNERABILITY' // Eternal Spirit
 }
 
 export interface Entity {
@@ -33,10 +33,10 @@ export interface Entity {
 export interface Player extends Entity {
   vy: number;
   integrity: number;    // HP
-  energy: number;       // Phase Resource
+  energy: number;       // Spirit Energy
   maxEnergy: number;
-  isPhasing: boolean;   // The core mechanic
-  phaseCooldown: number; // Small delay after phasing
+  isPhasing: boolean;   // "Spirit Form"
+  phaseCooldown: number;
   angle: number; 
   isThrusting: boolean; 
   godMode?: boolean;
@@ -45,7 +45,7 @@ export interface Player extends Entity {
   comboTimer: number;
 }
 
-export type ObstacleType = 'DEBRIS' | 'DRONE' | 'SERVER_TOWER' | 'ENERGY_BARRIER' | 'WATCHER';
+export type ObstacleType = 'ICE_SHARD' | 'CORRUPTED_ELF' | 'RUSTED_PINE' | 'FROST_WALL' | 'WATCHER_EYE';
 
 export interface Obstacle extends Entity {
   type: ObstacleType;
@@ -65,7 +65,7 @@ export interface ScorePopup {
 }
 
 export interface Landmark extends Entity {
-  type: 'HOLO_TREE' | 'RUINED_FACTORY' | 'FROZEN_TIME_MACHINE';
+  type: 'GIANT_TREE' | 'RUINED_WORKSHOP' | 'CHRONOS_SNOWFLAKE';
   name: string;
 }
 
@@ -80,12 +80,12 @@ export interface DataLog extends Entity {
 }
 
 export enum ParticleType {
-  SPARK,     // Electric blue
-  SMOKE,     // Grey/Black
-  GLITCH,    // Green/Pink blocks
-  THRUST,    // Engine exhaust
-  DATA,      // Binary 0/1
-  PHASE_RESIDUAL // Ghostly trail
+  SPARK,      // Magic sparks
+  SNOW,       // Background snow
+  GLOW,       // Soft light
+  THRUST,     // Magic exhaust
+  RUNE,       // Magical symbols
+  SPIRIT_TRAIL // Blue trail
 }
 
 export interface Particle {
@@ -107,7 +107,7 @@ export interface LevelConfig {
   subtext: string;
   colors: {
     sky: [string, string];
-    grid: string;
+    ground: string;
     fog: string;
     aurora: string; 
   };
@@ -117,7 +117,7 @@ export interface LevelConfig {
 }
 
 export interface BackgroundLayer {
-  points: number[];
+  points: {height: number, type: number}[];
   color: string;
   speedModifier: number;
   offset: number;
@@ -125,7 +125,7 @@ export interface BackgroundLayer {
 
 export interface DialogueLine {
   id: string;
-  speaker: 'KRAMPUS' | 'SYSTEM' | 'ARCHIVE';
+  speaker: 'KRAMPUS' | 'ECHO' | 'RED_SAINT';
   text: string;
 }
 

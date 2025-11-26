@@ -26,7 +26,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   
   // Entities
   const playerRef = useRef<Player>({
-    id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false,
+    id: 0, x: 100, y: 300, width: 90, height: 40, markedForDeletion: false,
     vy: 0, integrity: 100, energy: 100, maxEnergy: 100,
     isPhasing: false, phaseCooldown: 0, angle: 0, isThrusting: false, godMode: false,
     combo: 1, comboTimer: 0
@@ -40,11 +40,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const scorePopupsRef = useRef<ScorePopup[]>([]);
   
   // Visuals
-  const starsRef = useRef<{x:number, y:number, size:number, opacity:number, blinkSpeed: number}[]>([]); 
+  const snowRef = useRef<{x:number, y:number, size:number, speed:number, swing: number}[]>([]); 
   const bgLayersRef = useRef<BackgroundLayer[]>([
-    { points: [], color: '#0f172a', speedModifier: 0.05, offset: 0 }, 
-    { points: [], color: '#1e293b', speedModifier: 0.2, offset: 0 },  
-    { points: [], color: '#334155', speedModifier: 0.5, offset: 0 },  
+    { points: [], color: '#0f172a', speedModifier: 0.1, offset: 0 }, 
+    { points: [], color: '#1e293b', speedModifier: 0.3, offset: 0 },  
+    { points: [], color: '#334155', speedModifier: 0.6, offset: 0 },  
   ]);
 
   // Logic
@@ -83,7 +83,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       distanceRef.current = VICTORY_DISTANCE * 0.96; 
       obstaclesRef.current = [];
       scoreRef.current += 5000;
-      createParticles(playerRef.current.x, playerRef.current.y, ParticleType.GLITCH, 50, '#00ff00');
+      createParticles(playerRef.current.x, playerRef.current.y, ParticleType.RUNE, 50, '#00ff00');
     } 
     else if (debugCommand === 'TOGGLE_GOD_MODE') {
       playerRef.current.godMode = !playerRef.current.godMode;
@@ -97,7 +97,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     }
     else if (debugCommand === 'TOGGLE_HYPER_PROGRESS') {
       progressMultiplierRef.current = progressMultiplierRef.current > 1 ? 1.0 : 10.0;
-      createParticles(playerRef.current.x, playerRef.current.y, ParticleType.GLITCH, 30, '#bc13fe');
+      createParticles(playerRef.current.x, playerRef.current.y, ParticleType.GLOW, 30, '#bc13fe');
     }
 
     if (onDebugCommandHandled) onDebugCommandHandled();
@@ -143,7 +143,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
        if (gameState === GameState.MENU) soundManager.init();
        const touchX = e.touches[0].clientX;
        if (touchX > window.innerWidth * 0.5) pressedKeysRef.current.add('Space');
-       else pressedKeysRef.current.add('ShiftLeft'); // Phase touch area
+       else pressedKeysRef.current.add('ShiftLeft'); 
     };
     const handleTouchEnd = () => {
        pressedKeysRef.current.clear();
@@ -165,7 +165,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   useEffect(() => {
     if (gameState !== GameState.PLAYING && gameState !== GameState.INTRO) return;
 
-    const genSkyline = (count: number, minH: number, maxH: number) => {
+    const genLandscape = (count: number, minH: number, maxH: number) => {
         const pts = [];
         for (let i = 0; i < count; i++) {
              pts.push({ height: minH + Math.random() * (maxH - minH), type: Math.floor(Math.random() * 5) });
@@ -174,18 +174,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     };
 
     if (bgLayersRef.current[0].points.length === 0) {
-        bgLayersRef.current[0].points = genSkyline(100, 150, 400) as any;
-        bgLayersRef.current[1].points = genSkyline(100, 80, 200) as any;
-        bgLayersRef.current[2].points = genSkyline(100, 40, 100) as any;
+        bgLayersRef.current[0].points = genLandscape(100, 150, 400);
+        bgLayersRef.current[1].points = genLandscape(100, 80, 200);
+        bgLayersRef.current[2].points = genLandscape(100, 40, 100);
         
-        starsRef.current = [];
-        for(let i=0; i<80; i++) {
-            starsRef.current.push({ 
+        snowRef.current = [];
+        for(let i=0; i<150; i++) {
+            snowRef.current.push({ 
                 x: Math.random()*CANVAS_WIDTH, 
                 y: Math.random()*CANVAS_HEIGHT, 
-                size: Math.random()*1.5 + 0.5, 
-                opacity: Math.random(),
-                blinkSpeed: Math.random() * 0.03 + 0.01
+                size: Math.random()*2 + 1, 
+                speed: Math.random() * 2 + 1,
+                swing: Math.random() * Math.PI * 2
             });
         }
     }
@@ -201,7 +201,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
     const resetGame = () => {
       playerRef.current = { 
-          id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false, vy: 0, integrity: 100, energy: 100, maxEnergy: 100, 
+          id: 0, x: 100, y: 300, width: 90, height: 40, markedForDeletion: false, vy: 0, integrity: 100, energy: 100, maxEnergy: 100, 
           isPhasing: false, phaseCooldown: 0, angle: 0, isThrusting: false, godMode: false,
           combo: 1, comboTimer: 0
       };
@@ -240,21 +240,21 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           if (pressedKeysRef.current.has('Space') || pressedKeysRef.current.has('ArrowUp')) {
               player.vy += THRUST_POWER * timeScale; 
               player.isThrusting = true;
-              createParticles(player.x - 10, player.y + 15, ParticleType.THRUST, 1, '#00f3ff'); 
+              createParticles(player.x - 20, player.y + 15, ParticleType.THRUST, 1, '#60a5fa'); 
           } else {
               player.isThrusting = false;
           }
           
-          // Phase Shift Logic
+          // Spirit Form Logic
           const wantsToPhase = (pressedKeysRef.current.has('ShiftLeft') || pressedKeysRef.current.has('ShiftRight') || pressedKeysRef.current.has('KeyZ'));
           
           if (wantsToPhase && player.energy > 0) {
               if (player.energy > PHASE_MIN_ACTIVATION || player.isPhasing) {
                  player.isPhasing = true;
                  if (!player.godMode) player.energy -= PHASE_DRAIN_RATE * dt;
-                 createParticles(player.x + Math.random()*player.width, player.y + Math.random()*player.height, ParticleType.PHASE_RESIDUAL, 1, '#bc13fe');
+                 createParticles(player.x + Math.random()*player.width, player.y + Math.random()*player.height, ParticleType.SPIRIT_TRAIL, 1, '#bfdbfe');
               } else {
-                 player.isPhasing = false; // Not enough energy to start
+                 player.isPhasing = false; 
               }
           } else {
               player.isPhasing = false;
@@ -305,17 +305,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
       if (gameMode === GameMode.STORY && progressRatio >= 0.96 && !isEndingSequenceRef.current) {
           isEndingSequenceRef.current = true;
-          player.isPhasing = true; // Auto phase for ending
+          player.isPhasing = true; 
           player.godMode = true;
           soundManager.playEndingMusic();
 
-          const ringExists = landmarksRef.current.some(l => l.type === 'FROZEN_TIME_MACHINE');
+          const ringExists = landmarksRef.current.some(l => l.type === 'CHRONOS_SNOWFLAKE');
           if (!ringExists) {
              landmarksRef.current.push({
                  id: Date.now(), x: CANVAS_WIDTH + 100, y: CANVAS_HEIGHT/2, width: 300, height: 300,
-                 type: 'FROZEN_TIME_MACHINE', name: 'The Chronos Engine', markedForDeletion: false
+                 type: 'CHRONOS_SNOWFLAKE', name: 'The Chronos Snowflake', markedForDeletion: false
              });
-             triggeredEventsRef.current.add('FROZEN_TIME_MACHINE');
+             triggeredEventsRef.current.add('CHRONOS_SNOWFLAKE');
           }
       }
 
@@ -344,15 +344,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               let w = 40; let h = 40;
               let score = 100;
               
-              if (type === 'SERVER_TOWER') {
+              if (type === 'RUSTED_PINE') {
                   y = CANVAS_HEIGHT - 200; w = 60; h = 200; score = 500;
-              } else if (type === 'ENERGY_BARRIER') {
+              } else if (type === 'FROST_WALL') {
                   h = 150; y = Math.random() * (CANVAS_HEIGHT - h); w = 30; score = 200;
-              } else if (type === 'DEBRIS') {
+              } else if (type === 'ICE_SHARD') {
                   w = 50; h = 50; score = 50;
-              } else if (type === 'DRONE') {
+              } else if (type === 'CORRUPTED_ELF') {
                   score = 150;
-              } else if (type === 'WATCHER') {
+              } else if (type === 'WATCHER_EYE') {
                   w = 50; h = 40; score = 300;
               }
 
@@ -381,7 +381,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
              }
          });
          LANDMARKS.forEach(lm => {
-             if (progressRatio >= lm.progress && !triggeredEventsRef.current.has(lm.type) && lm.type !== 'FROZEN_TIME_MACHINE') {
+             if (progressRatio >= lm.progress && !triggeredEventsRef.current.has(lm.type) && lm.type !== 'CHRONOS_SNOWFLAKE') {
                  triggeredEventsRef.current.add(lm.type);
                  landmarksRef.current.push({
                      id: Date.now(), x: CANVAS_WIDTH + 100, y: CANVAS_HEIGHT/2, width: 300, height: 300,
@@ -396,21 +396,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       obstaclesRef.current.forEach(obs => {
           obs.x -= currentSpeed * level.obstacleSpeed * timeScale;
           if (obs.x < -100) obs.markedForDeletion = true;
-          if (obs.type === 'DRONE' || obs.type === 'DEBRIS') obs.rotation! += 0.05 * timeScale;
+          if (obs.type === 'CORRUPTED_ELF' || obs.type === 'ICE_SHARD') obs.rotation! += 0.05 * timeScale;
           
-          if (obs.type === 'WATCHER') {
-              // Slowly moves towards player Y
+          if (obs.type === 'WATCHER_EYE') {
               obs.y += (player.y - obs.y) * 0.01 * timeScale;
           }
 
           // Player vs Obstacle Collision
           if (!obs.markedForDeletion && checkCollision(player, obs)) {
               if (player.isPhasing || player.godMode) {
-                  // Phase Through Logic
+                  // Spirit Form Through
                   if (!obs.scanned) {
                       obs.scanned = true;
                       soundManager.playScanSuccess();
-                      createParticles(obs.x + obs.width/2, obs.y + obs.height/2, ParticleType.DATA, 8, '#00f3ff');
+                      createParticles(obs.x + obs.width/2, obs.y + obs.height/2, ParticleType.RUNE, 8, '#bfdbfe');
                       
                       // Reward
                       player.energy = Math.min(player.maxEnergy, player.energy + PHASE_SCAN_REWARD);
@@ -419,7 +418,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                       player.comboTimer = COMBO_DECAY;
                       const val = obs.scoreValue * player.combo;
                       scoreRef.current += val;
-                      createScorePopup(player.x, player.y - 20, val, `DATA ${player.combo}x`);
+                      createScorePopup(player.x, player.y - 20, val, `SPIRIT ${player.combo}x`);
                   }
               } else {
                   // Collision Damage
@@ -429,10 +428,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                   obs.markedForDeletion = true;
                   // Reset Combo
                   if (player.combo > 1) {
-                      createScorePopup(player.x, player.y - 20, 0, "SYNC LOST");
+                      createScorePopup(player.x, player.y - 20, 0, "CHAIN BROKEN");
                       player.combo = 1;
                   }
-                  createParticles(player.x + 20, player.y + 10, ParticleType.SPARK, 15, '#f59e0b');
+                  createParticles(player.x + 20, player.y + 10, ParticleType.SPARK, 15, '#f87171');
               }
           }
       });
@@ -444,11 +443,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           if (checkCollision(player, p)) {
               p.markedForDeletion = true;
               soundManager.playCollectData();
-              createParticles(p.x, p.y, ParticleType.SPARK, 10, POWERUP_COLORS[p.type]);
+              createParticles(p.x, p.y, ParticleType.GLOW, 10, POWERUP_COLORS[p.type]);
               if (p.type === PowerupType.CHARGE) player.energy = Math.min(player.maxEnergy, player.energy + 50);
               if (p.type === PowerupType.REPAIR) player.integrity = Math.min(100, player.integrity + 30);
-              if (p.type === PowerupType.DATA_CACHE) scoreRef.current += 1000;
-              if (p.type === PowerupType.INVULNERABILITY) player.energy = player.maxEnergy; // Full recharge
+              if (p.type === PowerupType.MEMORY) scoreRef.current += 1000;
+              if (p.type === PowerupType.INVULNERABILITY) player.energy = player.maxEnergy; 
               createScorePopup(p.x, p.y, 500, p.type);
           }
       });
@@ -461,8 +460,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           p.life -= dt;
           p.x += p.vx * timeScale;
           p.y += p.vy * timeScale;
-          if (p.type === ParticleType.PHASE_RESIDUAL) {
-              p.x -= currentSpeed * timeScale * 0.5; // Trail effect
+          if (p.type === ParticleType.SPIRIT_TRAIL) {
+              p.x -= currentSpeed * timeScale * 0.5; 
           }
       });
       
@@ -470,6 +469,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       scorePopupsRef.current.forEach(p => {
           p.life -= dt;
           p.y -= 1 * timeScale; // Float up
+      });
+
+      // Snow
+      snowRef.current.forEach(s => {
+          s.y += s.speed * timeScale * 0.5;
+          s.x -= currentSpeed * timeScale * 0.2; // Parallax with speed
+          s.x += Math.sin(s.swing + now * 0.001) * 0.5;
+          if (s.y > CANVAS_HEIGHT) s.y = -10;
+          if (s.x < 0) s.x = CANVAS_WIDTH;
       });
 
       // Cleanup
@@ -492,10 +500,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
     const drawAurora = (ctx: CanvasRenderingContext2D, color: string, now: number) => {
       ctx.save();
-      ctx.globalCompositeOperation = 'screen';
-      ctx.filter = 'blur(40px)'; 
-      ctx.globalAlpha = 0.6; 
-      const t = now * 0.001;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.filter = 'blur(30px)'; 
+      ctx.globalAlpha = 0.4; 
+      const t = now * 0.0005;
       
       const grad = ctx.createLinearGradient(0, 0, CANVAS_WIDTH, 0);
       grad.addColorStop(0, 'transparent');
@@ -526,32 +534,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
         if (level.colors.aurora) drawAurora(ctx, level.colors.aurora, now);
 
-        // Sun / Moon / Digital Horizon
+        // Moon (Shattered)
         ctx.save();
-        ctx.fillStyle = level.colors.grid; 
-        ctx.shadowColor = level.colors.grid; ctx.shadowBlur = 100;
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.beginPath(); ctx.arc(CANVAS_WIDTH - 200, 150, 70, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#e2e8f0"; 
+        ctx.shadowColor = "#ffffff"; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(CANVAS_WIDTH - 200, 150, 40, 0, Math.PI*2); ctx.fill();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath(); ctx.moveTo(CANVAS_WIDTH-220, 150); ctx.lineTo(CANVAS_WIDTH-160, 140); ctx.lineTo(CANVAS_WIDTH-180, 160); ctx.fill();
         ctx.shadowBlur = 0;
         ctx.restore();
-
-        // 2. Stars
-        starsRef.current.forEach(s => {
-            const flicker = Math.sin(now * 0.005 + s.x) * 0.3 + 0.7;
-            ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity * flicker})`;
-            ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
-        });
 
         // 3. Parallax
         bgLayersRef.current.forEach((layer, i) => {
             ctx.save();
             ctx.fillStyle = layer.color;
-            ctx.strokeStyle = level.colors.grid || "#00f3ff";
-            ctx.shadowColor = level.colors.grid;
-            ctx.shadowBlur = i === 0 ? 10 : 0;
-            ctx.lineWidth = i === 0 ? 2 : 1;
             
-            const blockWidth = 60 + i * 20; 
+            const blockWidth = 50 + i * 30; 
             const points = layer.points as any[];
             if (!points || points.length === 0) { ctx.restore(); return; }
 
@@ -560,56 +558,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             const startIndex = Math.floor(scrollPos / blockWidth);
             const offset = scrollPos % blockWidth;
 
-            for (let j = 0; j < Math.ceil(CANVAS_WIDTH / blockWidth) + 1; j++) {
+            ctx.beginPath();
+            ctx.moveTo(-blockWidth, CANVAS_HEIGHT);
+            
+            for (let j = 0; j < Math.ceil(CANVAS_WIDTH / blockWidth) + 2; j++) {
                 const idx = (startIndex + j) % points.length;
                 const b = points[idx]; 
                 if (!b) continue;
 
                 const x = j * blockWidth - offset;
                 const h = b.height;
-                
-                ctx.fillRect(x, CANVAS_HEIGHT - h, blockWidth + 1, h);
-                
-                if (i >= 0) {
-                     ctx.globalAlpha = 0.4;
-                     ctx.beginPath(); ctx.moveTo(x, CANVAS_HEIGHT); ctx.lineTo(x, CANVAS_HEIGHT-h); ctx.lineTo(x+blockWidth, CANVAS_HEIGHT-h); ctx.stroke();
-                     ctx.globalAlpha = 1.0;
-                     ctx.fillStyle = layer.color;
-                }
+                // Smooth terrain
+                ctx.lineTo(x, CANVAS_HEIGHT - h);
             }
+            ctx.lineTo(CANVAS_WIDTH + blockWidth, CANVAS_HEIGHT);
+            ctx.fill();
             ctx.restore();
         });
-
-        // 4. Cyber Grid
-        ctx.save();
-        ctx.strokeStyle = level.colors.grid;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = level.colors.grid;
-        ctx.shadowBlur = 20; 
-        ctx.globalAlpha = 0.8;
-        const horizonY = CANVAS_HEIGHT - 50;
-        
-        ctx.beginPath();
-        for(let x = -CANVAS_WIDTH; x < CANVAS_WIDTH * 2; x += 100) {
-            ctx.moveTo(x, horizonY);
-            const xDist = x - CANVAS_WIDTH/2;
-            ctx.lineTo(CANVAS_WIDTH/2 + xDist * 4, CANVAS_HEIGHT);
-        }
-        
-        const moveZ = (distanceRef.current * 1.5) % 100;
-        for (let i = 0; i < 10; i++) {
-             const yPos = horizonY + Math.pow(i, 2.5) + (moveZ * (i/10)); 
-             if (yPos > CANVAS_HEIGHT) continue;
-             ctx.moveTo(0, yPos); ctx.lineTo(CANVAS_WIDTH, yPos);
-        }
-        ctx.stroke();
-        
-        const gradGround = ctx.createLinearGradient(0, horizonY, 0, CANVAS_HEIGHT);
-        gradGround.addColorStop(0, "rgba(0,0,0,0.8)");
-        gradGround.addColorStop(1, level.colors.grid);
-        ctx.fillStyle = gradGround;
-        ctx.fillRect(0, horizonY, CANVAS_WIDTH, CANVAS_HEIGHT - horizonY);
-        ctx.restore();
 
         // 5. Entities
         ctx.save();
@@ -627,6 +592,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
         ctx.restore();
 
+        // Snow Overlay
+        ctx.save();
+        ctx.fillStyle = "white";
+        snowRef.current.forEach(s => {
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
+        });
+        ctx.restore();
+
         // Fog
         if (lastLevelIndexRef.current < 4) {
             const gradFog = ctx.createLinearGradient(0, CANVAS_HEIGHT-200, 0, CANVAS_HEIGHT);
@@ -641,9 +615,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.save();
         ctx.globalAlpha = Math.max(0, s.life);
         ctx.fillStyle = s.color;
-        ctx.shadowColor = 'black';
-        ctx.shadowBlur = 0;
-        ctx.font = 'bold 20px Orbitron';
+        ctx.shadowColor = s.color;
+        ctx.shadowBlur = 10;
+        ctx.font = 'bold 20px Cinzel';
         ctx.fillText(s.text || `+${s.value}`, s.x, s.y);
         ctx.restore();
     };
@@ -651,21 +625,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     const drawParticle = (ctx: CanvasRenderingContext2D, p: Particle) => {
         ctx.save();
         ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-        if (p.type === ParticleType.PHASE_RESIDUAL) {
+        if (p.type === ParticleType.SPIRIT_TRAIL) {
             ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, p.radius * 20, p.radius * 8); // Digital trail shape
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 2, 0, Math.PI*2); ctx.fill();
         } else if (p.type === ParticleType.SPARK || p.type === ParticleType.THRUST) {
             ctx.globalCompositeOperation = 'lighter';
             ctx.fillStyle = p.color;
-            ctx.shadowColor = p.color; ctx.shadowBlur = 20;
+            ctx.shadowColor = p.color; ctx.shadowBlur = 15;
             ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
-        } else if (p.type === ParticleType.GLITCH) {
+        } else if (p.type === ParticleType.GLOW) {
             ctx.fillStyle = p.color;
-            ctx.shadowColor = p.color; ctx.shadowBlur = 10;
-            ctx.fillRect(p.x, p.y, p.radius, p.radius);
-        } else if (p.type === ParticleType.DATA) {
-            ctx.fillStyle = '#fff';
-            ctx.fillText(Math.random() > 0.5 ? '1' : '0', p.x, p.y);
+            ctx.shadowColor = p.color; ctx.shadowBlur = 20;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius*2, 0, Math.PI*2); ctx.fill();
+        } else if (p.type === ParticleType.RUNE) {
+            ctx.fillStyle = '#bfdbfe';
+            ctx.font = '10px serif';
+            ctx.fillText('✴', p.x, p.y);
         }
         ctx.restore();
     };
@@ -673,56 +648,61 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     const drawPlayer = (ctx: CanvasRenderingContext2D, p: Player) => {
         ctx.save(); ctx.translate(p.x + p.width/2, p.y + p.height/2); ctx.rotate(p.angle);
         
+        // Krampus - The Seeker
+        // Spirit Mode Visuals
         if (p.isPhasing) {
-             // Ghost Mode
-             ctx.globalAlpha = 0.4 + Math.random() * 0.2;
-             ctx.shadowColor = "#bc13fe"; ctx.shadowBlur = 50;
-             // Scanlines over player
-             ctx.strokeStyle = "#bc13fe";
-             ctx.lineWidth = 1;
-             for(let i=-20; i<20; i+=4) {
-                 ctx.beginPath(); ctx.moveTo(-40, i); ctx.lineTo(40, i); ctx.stroke();
-             }
+             ctx.globalAlpha = 0.6;
+             ctx.shadowColor = "#bfdbfe"; ctx.shadowBlur = 40;
         } else {
              ctx.globalAlpha = 1.0;
+             ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 10;
         }
 
-        // MK-V Sleigh Body
-        ctx.shadowColor = p.isPhasing ? "#bc13fe" : "#00f3ff"; ctx.shadowBlur = 30;
-        ctx.fillStyle = "#020617"; 
+        // Sleigh Body (Ancient Wood & Iron)
+        ctx.fillStyle = "#3f2c2c"; // Dark Wood
+        if (p.isPhasing) ctx.fillStyle = "#1e3a8a"; // Ghostly Blue
+        
         ctx.beginPath(); 
-        ctx.moveTo(35, 5); ctx.lineTo(-20, -12); ctx.lineTo(-40, 0); ctx.lineTo(-20, 15); ctx.lineTo(35, 5); 
+        // Sleigh Shape
+        ctx.moveTo(40, -5); 
+        ctx.quadraticCurveTo(20, 20, -30, 10);
+        ctx.lineTo(-40, 0);
+        ctx.quadraticCurveTo(-20, -15, 40, -5);
         ctx.fill();
         
-        // Neon Trim
-        ctx.strokeStyle = p.isPhasing ? "#bc13fe" : "#00f3ff"; ctx.lineWidth = 2;
+        // Gold Trim
+        ctx.strokeStyle = p.isPhasing ? "#93c5fd" : "#d97706"; ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.shadowBlur = 0;
 
-        ctx.fillStyle = "#1e293b";
-        ctx.fillRect(-45, -8, 20, 16);
-        
-        // Thruster Glow
-        ctx.fillStyle = p.isThrusting ? "#00f3ff" : "#1e293b"; 
-        ctx.shadowColor = p.isThrusting ? "#00f3ff" : "none"; ctx.shadowBlur = p.isThrusting ? 40 : 0;
-        ctx.beginPath(); ctx.ellipse(-48, 0, 4, 10, 0, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 0;
+        // Krampus Silhouette
+        ctx.fillStyle = p.isPhasing ? "#dbeafe" : "#0f172a"; 
+        ctx.beginPath();
+        ctx.arc(0, -10, 10, 0, Math.PI*2); // Head
+        ctx.fill();
+        // Horns
+        ctx.beginPath();
+        ctx.moveTo(-5, -15); ctx.quadraticCurveTo(-10, -25, -2, -28);
+        ctx.moveTo(5, -15); ctx.quadraticCurveTo(10, -25, 2, -28);
+        ctx.stroke();
 
-        // Cockpit
-        ctx.fillStyle = p.isPhasing ? "#fff" : "#bc13fe"; 
-        ctx.shadowColor = "#bc13fe"; ctx.shadowBlur = 20;
-        ctx.beginPath(); ctx.ellipse(5, -5, 15, 8, -0.2, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 0;
-
-        // Scarf/Trail
+        // Red Scarf (The connection to Santa)
         const t = Date.now() / 150;
-        ctx.strokeStyle = p.isPhasing ? "#ffffff" : "#ff00ff"; ctx.lineWidth = 4; ctx.lineCap = 'round';
-        ctx.shadowColor = "#ff00ff"; ctx.shadowBlur = 20;
+        ctx.strokeStyle = p.isPhasing ? "#ffffff" : "#dc2626"; ctx.lineWidth = 4; ctx.lineCap = 'round';
+        ctx.shadowColor = "#dc2626"; ctx.shadowBlur = p.isPhasing ? 0 : 10;
         ctx.beginPath(); 
-        ctx.moveTo(-10, -8); 
-        ctx.quadraticCurveTo(-25, -12 + Math.sin(t)*3, -45 - (p.vy), -8 + Math.cos(t)*3); 
+        ctx.moveTo(-5, -8); 
+        ctx.quadraticCurveTo(-25, -12 + Math.sin(t)*5, -55 - (p.vy*2), -8 + Math.cos(t)*5); 
         ctx.stroke();
         ctx.shadowBlur = 0;
+
+        // Magic Thruster
+        if (p.isThrusting) {
+            ctx.fillStyle = "#60a5fa";
+            ctx.shadowColor = "#60a5fa"; ctx.shadowBlur = 30;
+            ctx.beginPath();
+            ctx.ellipse(-40, 5, 8, 4, 0, 0, Math.PI*2);
+            ctx.fill();
+        }
 
         ctx.restore();
     };
@@ -730,120 +710,117 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     const drawObstacle = (ctx: CanvasRenderingContext2D, o: Obstacle, now: number) => {
         ctx.save(); ctx.translate(o.x + o.width/2, o.y + o.height/2);
         
-        // Scanned Effect (Translucent green)
         if (o.scanned) {
-            ctx.globalAlpha = 0.3;
-            ctx.strokeStyle = "#00ff41";
-            ctx.shadowColor = "#00ff41";
-            ctx.shadowBlur = 20;
+            ctx.globalAlpha = 0.4;
+            ctx.strokeStyle = "#ffffff";
         } else {
             ctx.globalAlpha = 1;
         }
 
-        if (o.type === 'DRONE' || o.type === 'WATCHER') {
+        if (o.type === 'WATCHER_EYE') {
             const hover = Math.sin(now * 0.005) * 5;
             ctx.translate(0, hover);
             
-            ctx.fillStyle = o.type === 'WATCHER' ? "#991b1b" : "#ff3d00";
-            if (!o.scanned) {
-                ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 25;
-            }
-            ctx.beginPath(); ctx.arc(0, 0, o.type==='WATCHER' ? 12 : 8, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            // Eye Bot
+            ctx.fillStyle = "#1e293b";
+            ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
             
-            ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(0, 0, o.type==='WATCHER' ? 20 : 14, 0, Math.PI*2); ctx.stroke();
-            
-            // Watcher Eye
-            if (o.type === 'WATCHER') {
-                ctx.fillStyle = "#ef4444";
-                ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
-                // Scanning beam
-                if (!o.scanned) {
-                    ctx.fillStyle = "rgba(239, 68, 68, 0.2)";
-                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-100, 40); ctx.lineTo(-100, -40); ctx.fill();
-                }
-            } else {
-                ctx.rotate(now * 0.01);
-                ctx.fillStyle = "#cbd5e1";
-                ctx.fillRect(-22, -2, 10, 4); ctx.fillRect(12, -2, 10, 4);
-                ctx.fillRect(-2, -22, 4, 10); ctx.fillRect(-2, 12, 4, 10);
-            }
+            // Glowing Red Eye
+            ctx.fillStyle = "#ef4444"; ctx.shadowColor = "#ef4444"; ctx.shadowBlur = 20;
+            ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
 
-        } else if (o.type === 'SERVER_TOWER') {
+            // Wings
+            ctx.strokeStyle = "#94a3b8";
+            ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-30, -10);
+            ctx.moveTo(15, 0); ctx.lineTo(30, -10);
+            ctx.stroke();
+
+        } else if (o.type === 'RUSTED_PINE') {
             const w = o.width; const h = o.height;
             ctx.translate(-w/2, -h/2);
-            ctx.fillStyle = "#020617"; ctx.fillRect(0,0,w,h);
-            ctx.strokeStyle = o.scanned ? "#22c55e" : "#ff3d00";
-            ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 15;
-            ctx.strokeRect(0,0,w,h);
-            for(let i=10; i<h-10; i+=15) {
-                const on = Math.sin(now * 0.01 + i) > 0;
-                ctx.fillStyle = on ? (o.scanned ? "#22c55e" : "#ff3d00") : "#1e293b";
-                ctx.fillRect(5, i, w-10, 4);
-            }
-        } else if (o.type === 'ENERGY_BARRIER') {
+            // Dead Tree
+            ctx.fillStyle = "#292524"; 
+            ctx.beginPath();
+            ctx.moveTo(w/2, 0);
+            ctx.lineTo(w, h);
+            ctx.lineTo(0, h);
+            ctx.fill();
+            // Dead Branches
+            ctx.strokeStyle = "#44403c";
+            ctx.beginPath(); ctx.moveTo(w/2, h*0.3); ctx.lineTo(w, h*0.5); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(w/2, h*0.6); ctx.lineTo(0, h*0.7); ctx.stroke();
+            
+        } else if (o.type === 'FROST_WALL') {
+             // Giant Icicles
             const w = o.width; const h = o.height;
             ctx.translate(-w/2, -h/2);
-            ctx.fillStyle = "#334155";
-            ctx.fillRect(0, 0, w, 15); ctx.fillRect(0, h-15, w, 15);
-            if (!o.scanned) {
-                ctx.strokeStyle = "#0047ff"; ctx.lineWidth = 3;
-                ctx.shadowColor = "#0047ff"; ctx.shadowBlur = 30;
-                ctx.beginPath();
-                ctx.moveTo(w/2, 15);
-                for(let i=15; i<h-15; i+=5) {
-                    ctx.lineTo(w/2 + (Math.random()-0.5)*15, i);
-                }
-                ctx.lineTo(w/2, h-15);
-                ctx.stroke(); ctx.shadowBlur = 0;
-            }
-        } else {
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, "#dbeafe"); grad.addColorStop(1, "#60a5fa");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(w/2, h); ctx.fill();
+            
+        } else if (o.type === 'CORRUPTED_ELF') {
+            // Broken Toy Elf
             ctx.rotate(o.rotation || 0);
-            ctx.fillStyle = "#334155";
-            ctx.shadowColor = "#94a3b8"; ctx.shadowBlur = 10;
-            ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(15, 0); ctx.lineTo(5, 20); ctx.lineTo(-15, 10); ctx.fill();
+            ctx.fillStyle = "#166534"; // Green Coat
+            ctx.fillRect(-15, -15, 30, 30);
+            ctx.fillStyle = "#ef4444"; // Red Hat
+            ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, -15); ctx.lineTo(0, -35); ctx.fill();
+            // X Eyes
+            ctx.strokeStyle = "white"; ctx.lineWidth = 2;
+            ctx.beginPath(); 
+            ctx.moveTo(-8, -5); ctx.lineTo(-2, 5); ctx.moveTo(-2, -5); ctx.lineTo(-8, 5);
+            ctx.moveTo(2, -5); ctx.lineTo(8, 5); ctx.moveTo(8, -5); ctx.lineTo(2, 5);
+            ctx.stroke();
+        } else {
+            // Ice Shard
+            ctx.rotate(o.rotation || 0);
+            ctx.fillStyle = "#cbd5e1";
+            ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(15, 0); ctx.lineTo(0, 25); ctx.lineTo(-15, 0); ctx.fill();
         }
         ctx.restore();
     };
 
     const drawLandmark = (ctx: CanvasRenderingContext2D, lm: Landmark) => {
         ctx.save(); ctx.translate(lm.x, lm.y - 150);
-        if (lm.type === 'FROZEN_TIME_MACHINE') {
-            // Updated Visual: A giant frozen clock/ring
-            ctx.shadowColor = "#00f3ff"; ctx.shadowBlur = 60;
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 8;
-            ctx.beginPath(); ctx.arc(0, 0, 120, 0, Math.PI*2); ctx.stroke();
-            ctx.shadowBlur = 0;
+        if (lm.type === 'CHRONOS_SNOWFLAKE') {
+            ctx.shadowColor = "#ffffff"; ctx.shadowBlur = 60;
+            ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 4;
             
-            // Ice crystals
-            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-            for(let i=0; i<8; i++) {
-                ctx.save(); ctx.rotate(i * (Math.PI/4));
-                ctx.beginPath(); ctx.moveTo(0, 120); ctx.lineTo(20, 160); ctx.lineTo(-20, 160); ctx.fill();
-                ctx.restore();
+            // Giant Snowflake
+            const t = Date.now() / 3000;
+            ctx.rotate(t);
+            for(let i=0; i<6; i++) {
+                ctx.rotate(Math.PI/3);
+                ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 150); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 100); ctx.lineTo(30, 120); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 100); ctx.lineTo(-30, 120); ctx.stroke();
             }
-
-            const t = Date.now()/2000; // Slow movement (frozen)
-            ctx.strokeStyle = "rgba(0, 243, 255, 0.5)"; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.ellipse(0, 0, 100, 30, t*0.1, 0, Math.PI*2); ctx.stroke();
-            ctx.beginPath(); ctx.ellipse(0, 0, 100, 30, -t*0.1, 0, Math.PI*2); ctx.stroke();
-        } else if (lm.type === 'HOLO_TREE') {
-            ctx.strokeStyle = "#00ff41"; ctx.shadowColor = "#00ff41"; ctx.shadowBlur = 40;
-            ctx.lineWidth = 3;
+            
+            // Center Core
+            ctx.fillStyle = "#60a5fa"; ctx.beginPath(); ctx.arc(0,0, 20, 0, Math.PI*2); ctx.fill();
+            
+        } else if (lm.type === 'GIANT_TREE') {
+            // Giant Dead Christmas Tree
+            ctx.fillStyle = "#0f172a"; 
             ctx.beginPath(); 
-            ctx.moveTo(0, 300); ctx.lineTo(0, 250);
-            ctx.moveTo(-60, 250); ctx.lineTo(60, 250); ctx.lineTo(0, 150); ctx.lineTo(-60, 250);
-            ctx.moveTo(-50, 150); ctx.lineTo(50, 150); ctx.lineTo(0, 70); ctx.lineTo(-50, 150);
-            ctx.stroke(); ctx.shadowBlur = 0;
-        } else {
-            ctx.fillStyle = "#000510"; 
-            ctx.strokeStyle = "#bc13fe"; ctx.lineWidth = 2;
-            ctx.shadowColor = "#bc13fe"; ctx.shadowBlur = 30;
-            ctx.beginPath(); ctx.rect(-100, 100, 200, 200); ctx.fill(); ctx.stroke();
-            ctx.fillRect(-80, 0, 30, 100); ctx.fillRect(20, 20, 30, 80);
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = "#bc13fe";
-            for(let i=0; i<200; i+=40) ctx.fillRect(-100+i, 110, 20, 10);
+            ctx.moveTo(0, 300); ctx.lineTo(100, 300); ctx.lineTo(0, -100); ctx.lineTo(-100, 300);
+            ctx.fill();
+            // Faint lights
+            ctx.fillStyle = "rgba(252, 211, 77, 0.2)";
+            ctx.beginPath(); ctx.arc(-20, 100, 5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(30, 200, 5, 0, Math.PI*2); ctx.fill();
+
+        } else if (lm.type === 'RUINED_WORKSHOP') {
+            ctx.fillStyle = "#27272a";
+            ctx.fillRect(-150, 100, 300, 200);
+            // Factory Chimneys
+            ctx.fillRect(-120, 0, 40, 100); ctx.fillRect(50, 20, 40, 80);
+            // Snow on roof
+            ctx.fillStyle = "#e2e8f0";
+            ctx.beginPath(); ctx.moveTo(-160, 100); ctx.lineTo(160, 100); ctx.lineTo(160, 110); ctx.lineTo(-160, 110); ctx.fill();
         }
         ctx.restore();
     };
@@ -856,24 +833,32 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.save();
         ctx.translate(cx, cy);
         
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.shadowColor = color; ctx.shadowBlur = 40;
-        ctx.fillStyle = "rgba(255,255,255,0.2)";
-        ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        ctx.fillStyle = color;
+        ctx.shadowColor = color; ctx.shadowBlur = 30;
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
+        
         if (p.type === PowerupType.CHARGE) {
-            // Lightning Bolt
-            ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(5, -5); ctx.lineTo(-2, 2); ctx.lineTo(4, 2); ctx.lineTo(-3, 10); ctx.lineTo(0, 2); ctx.lineTo(-6, 2); ctx.fill();
+            // Spirit Orb
+            ctx.fillStyle = "rgba(96, 165, 250, 0.3)";
+            ctx.beginPath(); ctx.arc(0,0, 15, 0, Math.PI*2); ctx.fill(); ctx.stroke();
         } else if (p.type === PowerupType.REPAIR) {
-            ctx.fillRect(-4, -10, 8, 20); ctx.fillRect(-10, -4, 20, 8);
-        } else if (p.type === PowerupType.INVULNERABILITY) {
-            ctx.beginPath(); ctx.moveTo(0, 10); ctx.quadraticCurveTo(10, 5, 10, -5); ctx.lineTo(-10, -5); ctx.quadraticCurveTo(-10, 5, 0, 10); ctx.fill();
+            // Green Cross
+            ctx.fillStyle = color;
+            ctx.fillRect(-5, -15, 10, 30); ctx.fillRect(-15, -5, 30, 10);
+        } else if (p.type === PowerupType.MEMORY) {
+            // Gold Star
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            for(let i=0; i<5; i++) {
+                ctx.lineTo(Math.cos((18+i*72)/180*Math.PI)*15, -Math.sin((18+i*72)/180*Math.PI)*15);
+                ctx.lineTo(Math.cos((54+i*72)/180*Math.PI)*7, -Math.sin((54+i*72)/180*Math.PI)*7);
+            }
+            ctx.closePath();
+            ctx.fill();
         } else {
-            // Data Block
-            ctx.fillRect(-8, -8, 16, 16); ctx.fillStyle = "#fff"; ctx.fillRect(-4, -4, 8, 8);
+             // Invulnerability Shield
+             ctx.strokeStyle = "#f472b6";
+             ctx.beginPath(); ctx.arc(0,0, 15, 0, Math.PI*2); ctx.stroke();
+             ctx.beginPath(); ctx.arc(0,0, 10, 0, Math.PI*2); ctx.stroke();
         }
         ctx.restore();
     };
@@ -888,13 +873,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   }, [gameState]);
 
   return (
-    <div className="relative w-full h-full max-w-[1200px] max-h-[600px] mx-auto border-4 border-slate-900 shadow-[0_0_50px_rgba(0,243,255,0.3)] overflow-hidden bg-[#00020a] rounded-lg">
+    <div className="relative w-full h-full max-w-[1200px] max-h-[600px] mx-auto border-4 border-slate-700 shadow-[0_0_50px_rgba(255,255,255,0.1)] overflow-hidden bg-[#020617] rounded-lg">
       <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="w-full h-full" />
       <UIOverlay {...hudState} currentLevelName={LEVELS[hudState.levelIndex].name} currentLevelSub={LEVELS[hudState.levelIndex].subtext} />
       {/* Vignette */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,2,10,0.9) 100%)' }}></div>
-      {/* Scanline Texture */}
-      <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay" style={{ backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 243, 255, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))', backgroundSize: '100% 4px, 6px 100%' }}></div>
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(15,23,42,0.8) 100%)' }}></div>
     </div>
   );
 };
