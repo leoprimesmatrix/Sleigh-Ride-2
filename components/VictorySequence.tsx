@@ -39,7 +39,7 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
       {/* Stage 3-4: The Reveal */}
       <div className={`absolute inset-0 bg-[#00020a] flex flex-col items-center justify-center transition-opacity duration-1000 ${stage >= 3 ? 'opacity-100' : 'opacity-0'}`}>
           <p className="text-xl text-cyan-100 italic mb-8 max-w-lg text-center leading-relaxed drop-shadow-[0_0_10px_rgba(0,243,255,0.5)]">
-              "The past is just another program waiting to be run."
+              "To find him, I must go back to where it all began."
           </p>
           
           {stage >= 4 && (

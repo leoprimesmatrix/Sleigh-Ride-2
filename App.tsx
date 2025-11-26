@@ -40,7 +40,7 @@ const App: React.FC = () => {
           "WEAPONS SYSTEMS... OFFLINE [CORRUPTED]",
           "CONNECTING TO ANCIENT NET...",
           "DECRYPTING HISTORY FILES...",
-          "SEARCH PARAMETER: 'SANTA'",
+          "SEARCH PARAMETER: 'RED SAINT'",
           "SYSTEM READY."
       ];
       

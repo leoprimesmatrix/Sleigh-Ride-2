@@ -14,7 +14,7 @@ export const BASE_SPEED = 10;
 export const PHASE_DRAIN_RATE = 40; // Energy drained per second while phasing
 export const PHASE_RECHARGE_RATE = 15; // Energy restored per second while NOT phasing
 export const PHASE_MIN_ACTIVATION = 10; // Min energy needed to start phasing
-export const PHASE_SCAN_REWARD = 15; // Energy restored when phasing through obstacle
+export const PHASE_SCAN_REWARD = 20; // Increased reward for aggressive play
 
 export const COMBO_DECAY = 3.0; 
 
@@ -25,6 +25,7 @@ export const POWERUP_COLORS: Record<PowerupType, string> = {
   [PowerupType.INVULNERABILITY]: '#bc13fe', // Purple
 };
 
+// Significantly shortened level thresholds for tighter pacing
 export const LEVEL_THRESHOLDS = [0, 25, 50, 75, 96];
 
 export const LEVELS: LevelConfig[] = [
@@ -39,6 +40,7 @@ export const LEVELS: LevelConfig[] = [
     },
     obstacleSpeed: 1.0,
     spawnRate: 1.0,
+    allowedObstacles: ['DEBRIS'] // Warmup
   },
   {
     name: "SECTOR 02", 
@@ -50,7 +52,8 @@ export const LEVELS: LevelConfig[] = [
       aurora: '#ff00ff' 
     },
     obstacleSpeed: 1.2,
-    spawnRate: 1.2,
+    spawnRate: 1.3,
+    allowedObstacles: ['DEBRIS', 'WATCHER'] // Intro to tracking enemies
   },
   {
     name: "SECTOR 03", 
@@ -62,7 +65,8 @@ export const LEVELS: LevelConfig[] = [
       aurora: '#ffffff'
     },
     obstacleSpeed: 1.4,
-    spawnRate: 1.5, 
+    spawnRate: 1.5,
+    allowedObstacles: ['DRONE', 'SERVER_TOWER'] // Moving targets & Walls
   },
   {
     name: "SECTOR 04", 
@@ -75,6 +79,7 @@ export const LEVELS: LevelConfig[] = [
     },
     obstacleSpeed: 1.6,
     spawnRate: 1.8,
+    allowedObstacles: ['ENERGY_BARRIER', 'WATCHER'] // High intensity phase gates
   },
   {
     name: "ZERO POINT", 
@@ -87,38 +92,39 @@ export const LEVELS: LevelConfig[] = [
     },
     obstacleSpeed: 0, 
     spawnRate: 0,
+    allowedObstacles: []
   }
 ];
 
 export const TOTAL_GAME_TIME_SECONDS = 9999; 
-export const VICTORY_DISTANCE = 350000; 
+export const VICTORY_DISTANCE = 100000; // Drastically reduced for shorter session (was 350k)
 
 // --- Narrative Content ---
 
 export const DATA_LOGS = [
-  "FRAG 001: 'Subject 4: The Departure. He chose to leave.'",
-  "FRAG 024: 'The spell of forgetting was absolute.'",
-  "FRAG 109: 'Gifts were not the purpose. The burden was.'",
-  "FRAG 332: 'They say he found peace in the void.'"
+  "LOG 2940: 'History deleted. The Red Saint is gone.'",
+  "LOG 2855: 'He said he had to find his purpose. He left.'",
+  "LOG 2600: 'The children stopped believing. The magic faded.'",
+  "LOG 2500: 'Christmas wasn't cancelled. It was forgotten.'"
 ];
 
 export const STORY_MOMENTS: { progress: number; dialogue: DialogueLine }[] = [
-  { progress: 0.01, dialogue: { id: 'act1_start', speaker: 'KRAMPUS', text: "The signal is faint. A ghost frequency from centuries ago." } },
-  { progress: 0.10, dialogue: { id: 'act1_sys', speaker: 'ARCHIVE', text: "WARNING: HISTORY FILE CORRUPTED. ACCESSING BACKUPS." } },
+  { progress: 0.05, dialogue: { id: 'act1_start', speaker: 'KRAMPUS', text: "The signal leads here. The place where the Legend ended." } },
+  { progress: 0.15, dialogue: { id: 'act1_sys', speaker: 'ARCHIVE', text: "ERROR: FILE 'SANTA_CLAUS' CORRUPTED. REFERENCE NOT FOUND." } },
   
-  { progress: 0.30, dialogue: { id: 'act2_start', speaker: 'KRAMPUS', text: "Holographic forests... ancient data suggests these were once real trees." } },
-  { progress: 0.40, dialogue: { id: 'act2_lore', speaker: 'ARCHIVE', text: "QUERY: 'CHRISTMAS'. RESULT: MYTHOLOGICAL EVENT. STATUS: DELETED." } },
+  { progress: 0.35, dialogue: { id: 'act2_start', speaker: 'KRAMPUS', text: "Why did you leave? You saved us once. Why not stay?" } },
+  { progress: 0.45, dialogue: { id: 'act2_lore', speaker: 'ARCHIVE', text: "RECORD: 'SUBJECT 4'. STATUS: DEPARTED. DESTINATION: UNKNOWN." } },
   
-  { progress: 0.55, dialogue: { id: 'act3_start', speaker: 'KRAMPUS', text: "We are getting closer. The architecture here... it's from His era." } },
-  { progress: 0.65, dialogue: { id: 'act3_sys', speaker: 'ARCHIVE', text: "DETECTING CHRONAL DISPLACEMENT. TIME IS UNSTABLE HERE." } },
+  { progress: 0.60, dialogue: { id: 'act3_start', speaker: 'KRAMPUS', text: "He didn't just leave. He ascended. He let go of the burden." } },
+  { progress: 0.70, dialogue: { id: 'act3_sys', speaker: 'ARCHIVE', text: "WARNING: CHRONAL INSTABILITY DETECTED. TIME IS LOOPING." } },
 
-  { progress: 0.80, dialogue: { id: 'act4_start', speaker: 'KRAMPUS', text: "He didn't die. He ascended. He left us to find our own way." } },
+  { progress: 0.85, dialogue: { id: 'act4_start', speaker: 'KRAMPUS', text: "If he is gone... then I must know the truth of what came before." } },
 
-  { progress: 0.96, dialogue: { id: 'act5_start', speaker: 'SYSTEM', text: "PROXIMITY ALERT. ZERO POINT DETECTED." } },
+  { progress: 0.96, dialogue: { id: 'act5_start', speaker: 'SYSTEM', text: "VISUAL CONFIRMATION. OBJECT: THE CHRONOS ENGINE." } },
 ];
 
 export const LANDMARKS = [
-    { progress: 0.35, type: 'HOLO_TREE', name: "Simulacrum: Evergreen" },
-    { progress: 0.60, type: 'RUINED_FACTORY', name: "The Workshop Ruins" },
+    { progress: 0.30, type: 'HOLO_TREE', name: "Simulacrum: Evergreen" },
+    { progress: 0.55, type: 'RUINED_FACTORY', name: "The Workshop Ruins" },
     { progress: 0.99, type: 'FROZEN_TIME_MACHINE', name: "The Chronos Engine" }
 ] as const;

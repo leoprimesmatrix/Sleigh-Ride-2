@@ -45,8 +45,10 @@ export interface Player extends Entity {
   comboTimer: number;
 }
 
+export type ObstacleType = 'DEBRIS' | 'DRONE' | 'SERVER_TOWER' | 'ENERGY_BARRIER' | 'WATCHER';
+
 export interface Obstacle extends Entity {
-  type: 'DEBRIS' | 'DRONE' | 'SERVER_TOWER' | 'ENERGY_BARRIER' | 'WATCHER';
+  type: ObstacleType;
   rotation?: number;
   scoreValue: number;
   scanned: boolean; // Has the player phased through it?
@@ -111,6 +113,7 @@ export interface LevelConfig {
   };
   obstacleSpeed: number;
   spawnRate: number;
+  allowedObstacles: ObstacleType[];
 }
 
 export interface BackgroundLayer {

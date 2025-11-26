@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { 
-  GameState, Player, Obstacle, Powerup, DataLog, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark, DebugCommand, ScorePopup
+  GameState, Player, Obstacle, Powerup, DataLog, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark, DebugCommand, ScorePopup, ObstacleType
 } from '../types.ts';
 import { 
   CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, THRUST_POWER, MAX_FALL_SPEED, BASE_SPEED, 
@@ -334,17 +334,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
       // 3. Spawning
       if (!isEndingSequenceRef.current) {
-          // Obstacles
-          if (Math.random() < 0.02 * level.spawnRate * timeScale && levelIndex !== 4) {
-              const types: Obstacle['type'][] = ['DEBRIS', 'DRONE', 'SERVER_TOWER', 'ENERGY_BARRIER', 'WATCHER'];
-              let type = types[0];
-              const r = Math.random();
-              if (r < 0.3) type = 'DEBRIS';
-              else if (r < 0.55) type = 'DRONE';
-              else if (r < 0.75) type = 'ENERGY_BARRIER';
-              else if (r < 0.9) type = 'SERVER_TOWER';
-              else type = 'WATCHER';
-
+          // Obstacles - Biome specific
+          const spawnChance = 0.02 * level.spawnRate * timeScale;
+          if (Math.random() < spawnChance && level.allowedObstacles.length > 0) {
+              const types = level.allowedObstacles;
+              let type = types[Math.floor(Math.random() * types.length)];
+              
               let y = Math.random() * (CANVAS_HEIGHT - 100);
               let w = 40; let h = 40;
               let score = 100;
@@ -396,9 +391,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
          });
       }
 
-      // 4. Collisions (Logic Updated: Phase Passing)
+      // 4. Collisions
       
-      // Obstacle Updates
       obstaclesRef.current.forEach(obs => {
           obs.x -= currentSpeed * level.obstacleSpeed * timeScale;
           if (obs.x < -100) obs.markedForDeletion = true;
