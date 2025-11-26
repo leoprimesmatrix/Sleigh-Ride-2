@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { 
-  GameState, Player, Obstacle, Powerup, DataLog, EMPBurst, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark
+  GameState, Player, Obstacle, Powerup, DataLog, EMPBurst, Particle, ParticleType, PowerupType, Entity, BackgroundLayer, DialogueLine, GameMode, Landmark, DebugCommand
 } from '../types.ts';
 import { 
   CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, THRUST_POWER, MAX_FALL_SPEED, BASE_SPEED, 
@@ -17,16 +17,18 @@ interface GameCanvasProps {
   setGameState: (state: GameState) => void;
   onWin: () => void;
   gameMode: GameMode;
+  debugCommand?: DebugCommand;
+  onDebugCommandHandled?: () => void;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin, gameMode }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin, gameMode, debugCommand, onDebugCommandHandled }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // Entities
   const playerRef = useRef<Player>({
     id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false,
     vy: 0, integrity: 100, energy: 100, maxEnergy: 100,
-    isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false
+    isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false, godMode: false
   });
   
   const obstaclesRef = useRef<Obstacle[]>([]);
@@ -70,6 +72,27 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     isShielded: false
   });
 
+  // Handle Debug Commands
+  useEffect(() => {
+    if (!debugCommand) return;
+    
+    if (debugCommand === 'SKIP_TO_ENDING') {
+      distanceRef.current = VICTORY_DISTANCE * 0.965; // Just before ending trigger
+      // Clear obstacles to prevent cheap deaths upon teleport
+      obstaclesRef.current = [];
+      scoreRef.current += 5000;
+      createParticles(playerRef.current.x, playerRef.current.y, ParticleType.GLITCH, 50, '#00ff00');
+    } 
+    else if (debugCommand === 'TOGGLE_GOD_MODE') {
+      playerRef.current.godMode = !playerRef.current.godMode;
+      playerRef.current.energy = 100;
+      playerRef.current.integrity = 100;
+      createParticles(playerRef.current.x, playerRef.current.y, ParticleType.SPARK, 30, '#ffd700');
+    }
+
+    if (onDebugCommandHandled) onDebugCommandHandled();
+  }, [debugCommand]);
+
   const createParticles = (x:number, y:number, type:ParticleType, count:number, color:string) => {
     for(let i=0; i<count; i++) {
         const speed = type === ParticleType.THRUST ? 4 : 8;
@@ -90,8 +113,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   };
 
   const triggerEMP = () => {
-      if (playerRef.current.energy >= EMP_COST) {
-          playerRef.current.energy -= EMP_COST;
+      if (playerRef.current.godMode || playerRef.current.energy >= EMP_COST) {
+          if (!playerRef.current.godMode) playerRef.current.energy -= EMP_COST;
           soundManager.playEMP();
           empsRef.current.push({
               id: Date.now(), x: playerRef.current.x + 40, y: playerRef.current.y + 20,
@@ -182,7 +205,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     if (!ctx) return;
 
     const resetGame = () => {
-      playerRef.current = { id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false, vy: 0, integrity: 100, energy: 100, maxEnergy: 100, isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false };
+      playerRef.current = { id: 0, x: 100, y: 300, width: 80, height: 35, markedForDeletion: false, vy: 0, integrity: 100, energy: 100, maxEnergy: 100, isShielded: false, shieldTimer: 0, overclockTimer: 0, angle: 0, isThrusting: false, godMode: false };
       obstaclesRef.current = []; powerupsRef.current = []; logsRef.current = []; landmarksRef.current = []; empsRef.current = []; particlesRef.current = [];
       distanceRef.current = 0; scoreRef.current = 0; timeRef.current = TOTAL_GAME_TIME_SECONDS;
       triggeredEventsRef.current.clear(); isEndingSequenceRef.current = false; endingTimerRef.current = 0;
@@ -296,7 +319,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               });
           }
           if (Math.random() < 0.005 * timeScale) {
-              const types = Object.values(PowerupType);
+              const types = Object.values(PowerupType).filter(t => t !== PowerupType.GOD_MODE);
               powerupsRef.current.push({
                   id: Date.now(), x: CANVAS_WIDTH, y: Math.random()*(CANVAS_HEIGHT-100), width: 40, height: 40,
                   type: types[Math.floor(Math.random()*types.length)], floatOffset: 0, markedForDeletion: false
@@ -357,7 +380,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       player.energy = Math.min(player.maxEnergy, player.energy + ENERGY_RECHARGE_RATE * timeScale);
       if (player.shieldTimer > 0) player.shieldTimer -= dt;
       if (player.overclockTimer > 0) player.overclockTimer -= dt;
-      player.isShielded = player.shieldTimer > 0 || isEndingSequenceRef.current;
+      player.isShielded = player.shieldTimer > 0 || isEndingSequenceRef.current || player.godMode || false;
 
       obstaclesRef.current.forEach(obs => {
           obs.x -= currentSpeed * level.obstacleSpeed * timeScale;
@@ -646,6 +669,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             ctx.shadowBlur = 0; ctx.globalAlpha = 1;
         }
 
+        if (p.godMode) {
+             ctx.strokeStyle = "#ffd700"; ctx.lineWidth = 3;
+             ctx.shadowColor = "#ffd700"; ctx.shadowBlur = 15;
+             ctx.beginPath(); ctx.arc(0, 0, 65, 0, Math.PI*2); ctx.stroke();
+             ctx.shadowBlur = 0;
+        }
+
         // MK-V Sleigh Body
         ctx.shadowColor = "#0ea5e9"; ctx.shadowBlur = 15;
         ctx.fillStyle = "#334155"; 
@@ -770,7 +800,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     };
 
     const drawPowerup = (ctx: CanvasRenderingContext2D, p: Powerup) => {
-        const color = POWERUP_COLORS[p.type];
+        const color = POWERUP_COLORS[p.type] || '#ffffff';
         const cx = p.x + p.width/2; 
         const cy = p.y + p.height/2 + Math.sin(p.floatOffset)*5;
         

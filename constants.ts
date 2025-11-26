@@ -19,6 +19,7 @@ export const POWERUP_COLORS: Record<PowerupType, string> = {
   [PowerupType.REPAIR]: '#22c55e',    // Green (Health)
   [PowerupType.OVERCLOCK]: '#f59e0b', // Amber (Speed)
   [PowerupType.SHIELD]: '#a855f7',    // Purple (Shield)
+  [PowerupType.GOD_MODE]: '#ffd700',  // Gold
 };
 
 export const LEVEL_THRESHOLDS = [0, 25, 50, 75, 96];

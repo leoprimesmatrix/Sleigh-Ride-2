@@ -18,7 +18,8 @@ export enum PowerupType {
   CHARGE = 'CHARGE',       // Restores Energy
   REPAIR = 'REPAIR',       // Restores Hull
   OVERCLOCK = 'OVERCLOCK', // Speed Boost
-  SHIELD = 'SHIELD'        // Invincibility
+  SHIELD = 'SHIELD',        // Invincibility
+  GOD_MODE = 'GOD_MODE'    // Debug only
 }
 
 export interface Entity {
@@ -40,6 +41,7 @@ export interface Player extends Entity {
   overclockTimer: number; // Speed
   angle: number; 
   isThrusting: boolean; // Visual state
+  godMode?: boolean; // Debug
 }
 
 export interface Obstacle extends Entity {
@@ -121,3 +123,5 @@ export interface DialogueLine {
   speaker: 'KRAMPUS' | 'SYSTEM' | 'UNKNOWN';
   text: string;
 }
+
+export type DebugCommand = 'SKIP_TO_ENDING' | 'TOGGLE_GOD_MODE' | null;

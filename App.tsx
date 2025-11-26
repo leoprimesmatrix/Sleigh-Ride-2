@@ -2,15 +2,25 @@
 import React, { useState, useEffect } from 'react';
 import GameCanvas from './components/GameCanvas.tsx';
 import VictorySequence from './components/VictorySequence.tsx';
-import { GameState, GameMode } from './types.ts';
-import { Terminal, Cpu, Play, Power, ShieldAlert, Radio, Database, ArrowLeft, XCircle } from 'lucide-react';
+import { GameState, GameMode, DebugCommand } from './types.ts';
+import { Terminal, Cpu, Power, ShieldAlert, Radio, Database, XCircle, Lock, FastForward, Eye } from 'lucide-react';
 import { soundManager } from './audio.ts';
+
+const PASSWORD_HASH = "c36a3014c27878347f3b4f65022d4f29135084931a26d71b870566412f5a2873"; // SHA-256 for 'genesis'
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.STORY);
   const [isLoading, setIsLoading] = useState(false);
   const [bootLog, setBootLog] = useState<string[]>([]);
+  
+  // Debug State
+  const [debugClicks, setDebugClicks] = useState(0);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [isDebugUnlocked, setIsDebugUnlocked] = useState(false);
+  const [debugCommand, setDebugCommand] = useState<DebugCommand>(null);
+  const [showDebugMenu, setShowDebugMenu] = useState(false);
 
   useEffect(() => {
     const handleGlobalKey = (e: KeyboardEvent) => {
@@ -58,6 +68,46 @@ const App: React.FC = () => {
 
   const restart = () => setGameState(GameState.MENU);
 
+  // --- Debug Logic ---
+  const handleSecretClick = () => {
+      if (isDebugUnlocked) {
+          setShowDebugMenu(true);
+          return;
+      }
+      const newCount = debugClicks + 1;
+      setDebugClicks(newCount);
+      if (newCount === 5) {
+          setShowPasswordModal(true);
+          setDebugClicks(0);
+      }
+  };
+
+  const verifyPassword = async () => {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(passwordInput);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      if (hashHex === PASSWORD_HASH) {
+          setIsDebugUnlocked(true);
+          setShowPasswordModal(false);
+          setShowDebugMenu(true);
+          setPasswordInput("");
+      } else {
+          alert("ACCESS DENIED");
+          setPasswordInput("");
+      }
+  };
+
+  const sendDebugCommand = (cmd: DebugCommand) => {
+      setDebugCommand(cmd);
+      setShowDebugMenu(false);
+      if (gameState !== GameState.PLAYING) {
+          setGameState(GameState.PLAYING);
+      }
+  };
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-black flex flex-col items-center justify-center font-mono text-slate-300 relative select-none">
       
@@ -70,8 +120,8 @@ const App: React.FC = () => {
       {/* Vignette */}
       <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(circle, transparent 60%, rgba(0,0,0,0.8) 100%)' }}></div>
 
-      {/* Floating System Deco */}
-      <div className="absolute top-4 left-4 text-[10px] text-cyan-900 flex flex-col gap-1 z-0">
+      {/* Floating System Deco - SECRET TRIGGER */}
+      <div className="absolute top-4 left-4 text-[10px] text-cyan-900 flex flex-col gap-1 z-50 cursor-pointer hover:text-cyan-600 transition-colors" onClick={handleSecretClick}>
           <div>SYS_ID: 0x94F2A</div>
           <div>MEM_FREE: 4092TB</div>
           <div>UPTIME: 9999:59:59</div>
@@ -82,12 +132,52 @@ const App: React.FC = () => {
           <div>LOC: UNKNOWN</div>
       </div>
 
+      {/* Password Modal */}
+      {showPasswordModal && (
+          <div className="absolute inset-0 z-[100] bg-black/90 flex items-center justify-center">
+              <div className="bg-slate-900 border border-green-500 p-6 w-80 shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+                  <div className="text-green-500 font-bold mb-4 flex items-center gap-2">
+                      <Lock size={16} /> ADMIN ACCESS
+                  </div>
+                  <input 
+                    type="password" 
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    className="w-full bg-black border border-slate-700 text-green-500 p-2 mb-4 font-mono focus:outline-none focus:border-green-500"
+                    placeholder="ENTER PASSPHRASE"
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                      <button onClick={() => setShowPasswordModal(false)} className="text-xs text-slate-500 hover:text-white px-3 py-1">CANCEL</button>
+                      <button onClick={verifyPassword} className="bg-green-900/30 text-green-500 border border-green-700 hover:bg-green-500 hover:text-black px-3 py-1 text-xs">VERIFY</button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Debug Menu Overlay */}
+      {showDebugMenu && (
+          <div className="absolute top-20 left-20 z-[90] bg-black/95 border border-green-500 p-4 w-64 shadow-2xl">
+               <div className="flex justify-between items-center mb-4 border-b border-green-900 pb-2">
+                   <h3 className="text-green-500 font-bold tracking-widest text-xs">DEBUG_TERMINAL</h3>
+                   <button onClick={() => setShowDebugMenu(false)} className="text-green-700 hover:text-green-400"><XCircle size={14}/></button>
+               </div>
+               <div className="space-y-2">
+                   <button onClick={() => sendDebugCommand('SKIP_TO_ENDING')} className="w-full text-left text-xs bg-slate-900 hover:bg-green-900 text-green-400 p-2 border border-slate-800 flex items-center gap-2">
+                       <FastForward size={14} /> JUMP TO CHRONOS
+                   </button>
+                   <button onClick={() => sendDebugCommand('TOGGLE_GOD_MODE')} className="w-full text-left text-xs bg-slate-900 hover:bg-green-900 text-yellow-400 p-2 border border-slate-800 flex items-center gap-2">
+                       <Eye size={14} /> TOGGLE GOD MODE
+                   </button>
+               </div>
+          </div>
+      )}
+
       {gameState === GameState.MENU && !isLoading && (
         <div className="z-20 text-center flex flex-col items-center gap-8 relative w-full px-4">
             
             {/* Title Block */}
             <div className="relative mb-8 w-full max-w-4xl">
-                {/* Adjusted size to 6xl/8xl and Added whitespace-nowrap to prevent ugly wrapping */}
                 <div className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-white tracking-tighter glitch-wrapper whitespace-nowrap" style={{ fontFamily: 'Orbitron' }}>
                     <span className="glitch absolute inset-0" data-text="SLEIGH RIDE 2">SLEIGH RIDE 2</span>
                     <span className="opacity-0">SLEIGH RIDE 2</span>
@@ -265,7 +355,21 @@ const App: React.FC = () => {
 
       {(gameState === GameState.PLAYING || gameState === GameState.GAME_OVER || gameState === GameState.VICTORY) && (
          <div className="relative w-full h-full md:max-w-[1200px] md:max-h-[600px] shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden bg-black z-20 border-2 border-slate-800">
-            <GameCanvas gameState={gameState} gameMode={gameMode} setGameState={setGameState} onWin={() => setGameState(GameState.VICTORY)} />
+            <GameCanvas 
+              gameState={gameState} 
+              gameMode={gameMode} 
+              setGameState={setGameState} 
+              onWin={() => setGameState(GameState.VICTORY)}
+              debugCommand={debugCommand}
+              onDebugCommandHandled={() => setDebugCommand(null)}
+            />
+            
+            {/* Debug Indicator */}
+            {isDebugUnlocked && (
+              <div className="absolute top-2 left-2 text-[10px] text-green-500 border border-green-800 px-2 py-1 bg-black/50 z-50">
+                DEBUG_MODE_ACTIVE
+              </div>
+            )}
             
             {gameState === GameState.GAME_OVER && (
                 <div className="absolute inset-0 bg-black/95 z-50 flex flex-col items-center justify-center font-mono">
